@@ -1,0 +1,17 @@
+[project]
+name = "scriptize"
+version = "0.1.0"
+description = "Improve maintainability, readability, and efficiency of your scripts by standardize your scripting environment."
+authors = [
+    {name = "Jonathan T. da Silva",email = "jonathantosilva@hotmail.com"}
+]
+license = {text = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
