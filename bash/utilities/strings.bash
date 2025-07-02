@@ -1,31 +1,39 @@
-# Transform text using these functions
-# Some were adapted from https://github.com/jmcantrell/bashful
+#=============================================================================
+# @file strings.bash
+# @brief A utility library for advanced string manipulation and transformation.
+# @description
+#   This script provides a collection of functions for cleaning, encoding,
+#   decoding, trimming, splitting, and matching strings using various
+#   methods including pure Bash, `sed`, `awk`, and `tr`.
+#
+# @see [bashful](https://github.com/jmcantrell/bashful)
+#=============================================================================
 
+# @description Cleans a string by trimming whitespace, removing duplicate spaces, and applying various transformations.
+#
+# @option -l | -L Forces all text to lowercase.
+# @option -u | -U Forces all text to uppercase.
+# @option -a | -A Removes all non-alphanumeric characters except spaces, dashes, and underscores.
+# @option -s In combination with `-a`, replaces removed characters with a space instead of deleting them.
+# @option -p <from,to> Replaces one character or pattern with another. The argument must be a comma-separated string (e.g., `"_, "`).
+#
+# @arg $1 string (required) The input string to be cleaned.
+# @arg $2 string (optional) A comma-separated list of specific characters to be removed from the string.
+#
+# @stdout The cleaned string.
+#
+# @note This function always performs the following cleaning steps:
+#   - Trims leading and trailing whitespace.
+#   - Squeezes multiple spaces into a single space.
+#   - Removes spaces around dashes and underscores.
+#
+# @example
+#   _cleanString_ "  --Some text__ with extra    stuff--  " # -> --Some text_ with extra stuff--
+#   _cleanString_ -l "  HELLO- WORLD  " # -> hello-world
+#   _cleanString_ -a "foo!@#$%bar" # -> foobar
+#   _cleanString_ -p " ,-" "foo, bar-baz" # -> foobarbaz
+#
 _cleanString_() {
-    # DESC:
-    #         Cleans a string of text
-    # ARGS:
-    #         $1 (Required) - String to be cleaned
-    #         $2 (optional) - Specific characters to be removed (separated by commas,
-    #                         escape regex special chars)
-    # OPTS:
-    #         -l:  Forces all text to lowercase
-    #         -u:  Forces all text to uppercase
-    #         -a:  Removes all non-alphanumeric characters except for spaces and dashes
-    #         -p:  Replace one character with another (separated by commas) (escape regex characters)
-    #         -s:  In combination with -a, replaces characters with a space
-    # OUTS:
-    #         stdout: Prints cleaned string
-    # USAGE:
-    #         _cleanString_ [OPT] [STRING] [CHARS TO REMOVE]
-    #         _cleanString_ -lp " ,-" [STRING] [CHARS TO REMOVE]
-    # NOTES:
-    #         Always cleaned:
-    #           - leading white space
-    #           - trailing white space
-    #           - multiple spaces become a single space
-    #           - remove spaces before and after -_
-
     local opt
     local _lc=false
     local _uc=false
@@ -98,20 +106,19 @@ _cleanString_() {
 
 }
 
+# @description Decodes HTML entities in a string (e.g., `&amp;` becomes `&`).
+#
+# @arg $1 string (required) The string to be decoded.
+#
+# @stdout The decoded string.
+# @exitcode 1 If the required `sed` definitions file is not found.
+#
+# @note This function requires a predefined `sed` file for replacements, expected at `~/.sed/html_decode.sed`.
+#
+# @example
+#   _decodeHTML_ "Bash&amp;apos;s great!" # -> Bash's great!
+#
 _decodeHTML_() {
-    # DESC:
-    #         Decode HTML characters with sed. Utilizes a sed file for speed.
-    # ARGS:
-    #         $1 (Required) - String to be decoded
-    # OUTS:
-    #         0 - Success
-    #         1 - Error
-    #         stdout: Prints decoded output
-    # USAGE:
-    #         _decodeHTML_ <string>
-    # NOTE:
-    #         Must have a sed file containing replacements. See: ../sedfiles/html_decode.sed
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _sedFile
@@ -122,36 +129,35 @@ _decodeHTML_() {
         return 1
 }
 
+# @description Decodes a URL-encoded (percent-encoded) string.
+#
+# @arg $1 string (required) The URL-encoded string to be decoded.
+#
+# @stdout The decoded string.
+#
+# @example
+#   _decodeURL_ "hello%20world%21" # -> hello world!
+#
 _decodeURL_() {
-    # DESC:
-    #         Decode a URL encoded string
-    # ARGS:
-    #         $1 (Required) - String to be decoded
-    # OUTS:
-    #         Prints output to STDOUT
-    # USAGE:
-    #         _decodeURL_ <string>
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _url_encoded="${1//+/ }"
     printf '%b' "${_url_encoded//%/\\x}"
 }
 
+# @description Encodes special HTML characters into their corresponding entities (e.g., `&` becomes `&amp;`).
+#
+# @arg $1 string (required) The string to be encoded.
+#
+# @stdout The encoded string.
+# @exitcode 1 If the required `sed` definitions file is not found.
+#
+# @note This function requires a predefined `sed` file for replacements, expected at `~/.sed/html_encode.sed`.
+#
+# @example
+#   _encodeHTML_ "<p>Tags & stuff</p>" # -> &lt;p&gt;Tags &amp; stuff&lt;/p&gt;
+#
 _encodeHTML_() {
-    # DESC:
-    #         Encode HTML characters with sed
-    # ARGS:
-    #         $1 (Required) - String to be encoded
-    # OUTS:
-    #         0 - Success
-    #         1 - Error
-    #         stdout: Prints encoded output
-    # USAGE:
-    #         _encodeHTML_ <string>
-    # NOTE:
-    #         Must have a sed file containing replacements. See: ../sedfiles/html_encode.sed
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _sedFile
@@ -162,18 +168,17 @@ _encodeHTML_() {
         return 1
 }
 
+# @description URL-encodes a string (percent-encoding).
+#
+# @arg $1 string (required) The string to be encoded.
+#
+# @stdout The URL-encoded string.
+#
+# @example
+#   _encodeURL_ "a key=a value" # -> a%20key%3Da%20value
+#
+# @see [Gist by cdown](https://gist.github.com/cdown/1163649)
 _encodeURL_() {
-    # DESC:
-    #         URL encode a string
-    # ARGS:
-    #         $1 (Required) - String to be encoded
-    # OUTS:
-    #         Prints output to STDOUT
-    # USAGE:
-    #         _encodeURL_ <string>
-    # CREDIT:
-    #         https://gist.github.com/cdown/1163649
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local LANG=C
@@ -188,70 +193,69 @@ _encodeURL_() {
     done
 }
 
+# @description Escapes special regex characters in a string by prepending a backslash (`\`).
+#
+# @arg $@ string (required) The string to be escaped.
+#
+# @stdout The escaped string.
+#
+# @example
+#   _escapeString_ "var.$1" # -> var\.\$1
+#
 _escapeString_() {
-    # DESC:
-    #         Escapes a string by adding \ before special chars
-    # ARGS:
-    #         $@ (Required) - String to be escaped
-    # OUTS:
-    #         stdout: Prints escaped output
-    # USAGE:
-    #         _escapeString_ "Some text here"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     printf "%s\n" "${@}" | sed 's/[]\.|$[ (){}?+*^]/\\&/g'
 }
 
+# @description Converts a string from stdin to lowercase.
+#
+# @stdin The input string.
+# @stdout The lowercased string.
+#
+# @example
+#   echo "HELLO WORLD" | _lower_ # -> hello world
+#   lower_var=$(_lower_ <<<"SOME TEXT")
+#
 _lower_() {
-    # DESC:
-    #         Convert a string to lowercase. Used through a pipe or here string.
-    # ARGS:
-    #         None
-    # OUTS:
-    #         None
-    # USAGE:
-    #         text=$(_lower_ <<<"$1")
-    #         printf "STRING" | _lower_
     tr '[:upper:]' '[:lower:]'
 }
 
+# @description Removes leading whitespace (or a specified character) from a string provided via stdin.
+#
+# @arg $1 string (optional) The character class to trim. Defaults to `[:space:]`.
+#
+# @stdin The input string.
+# @stdout The string with leading characters trimmed.
+#
+# @example
+#   echo "   hello" | _ltrim_ # -> "hello"
+#   echo "___hello" | _ltrim_ "_" # -> "hello"
+#
 _ltrim_() {
-    # DESC:
-    #         Removes all leading whitespace (from the left). Used through a pipe or here string.
-    # ARGS:
-    #         $1 (Optional) - Character to trim. Defaults to [:space:]
-    # OUTS:
-    #         None
-    # USAGE:
-    #         text=$(_ltrim_ <<<"$1")
-    #         printf "STRING" | _ltrim_
     local _char=${1:-[:space:]}
     sed "s%^[${_char//%/\\%}]*%%"
 }
 
+# @description Captures the first matching group from a string using a regex pattern.
+#
+# @option -i | -I Ignore case during the regex match.
+#
+# @arg $1 string (required) The input string to search.
+# @arg $2 string (required) The regex pattern with a capture group.
+#
+# @stdout The content of the first captured group (`BASH_REMATCH[1]`).
+# @exitcode 0 If the regex matched.
+# @exitcode 1 If the regex did not match.
+#
+# @note This uses Bash's `=~` operator and the `BASH_REMATCH` array.
+#
+# @example
+#   HEXCODE=$(_regexCapture_ "color: #AABBCC;" "(#[a-fA-F0-9]{6})")
+#   # HEXCODE is now "#AABBCC"
+#
+# @see [pure-bash-bible](https://github.com/dylanaraps/pure-bash-bible)
 _regexCapture_() {
-    # DESC:
-    #         Use regex to capture a group of text from a string
-    # ARGS:
-    #         $1 (Required) - Input String
-    #         $2 (Required) - Regex pattern
-    # OPTIONS:
-    #         -i (Optional) - Ignore case
-    # OUTS:
-    #         0 - Regex matched
-    #         1 - Regex did not match
-    #         stdout: Prints string matching regex
-    # USAGE:
-    #         HEXCODE=$(_regexCapture_ "background-color: #FFFFFF;" '^(#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3}))$')
-    #         $ printf "%s\n" "${HEXCODE}"
-    #         $ #FFFFFF
-    # NOTE:
-    #         This example only prints the first matching group. When using multiple capture
-    #         groups some modification is needed.
-    # CREDIT:
-    #         https://github.com/dylanaraps/pure-bash-bible
-
     local opt
     local OPTIND=1
     while getopts ":iI" opt; do
@@ -276,33 +280,35 @@ _regexCapture_() {
     fi
 }
 
+# @description Removes trailing whitespace (or a specified character) from a string provided via stdin.
+#
+# @arg $1 string (optional) The character class to trim. Defaults to `[:space:]`.
+#
+# @stdin The input string.
+# @stdout The string with trailing characters trimmed.
+#
+# @example
+#   echo "hello   " | _rtrim_ # -> "hello"
+#   echo "hello___" | _rtrim_ "_" # -> "hello"
+#
 _rtrim_() {
-    # DESC:
-    #         Removes all leading whitespace (from the right). Used through a pipe or here string.
-    # ARGS:
-    #         $1 (Optional) - Character to trim. Defaults to [:space:]
-    # OUTS:
-    #         None
-    # USAGE:
-    #         text=$(_rtrim_ <<<"$1")
-    #         printf "STRING" | _rtrim_
     local _char=${1:-[:space:]}
     sed "s%[${_char//%/\\%}]*$%%"
 }
 
+# @description Splits a string into an array based on a given delimiter.
+#
+# @arg $1 string (required) The string to be split.
+# @arg $2 string (required) The delimiter character.
+#
+# @stdout The resulting elements, each on a new line.
+#
+# @example
+#   # To populate an array:
+#   mapfile -t my_array < <(_splitString_ "apple,banana,cherry" ",")
+#   echo ${my_array[1]} # -> banana
+#
 _splitString_() (
-    # DESC:
-    #         Split a string into an array based on a given delimiter
-    # ARGS:
-    #         $1 (Required) - String to be split
-    #         $2 (Required) - Delimiter
-    # OUTS:
-    #         0 - Success
-    #         1 - Failure
-    #         stdout: Values split by delimiter separated by newline
-    # USAGE:
-    #         ARRAY=( $(_splitString_ "string1,string2,string3" ",") )
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     declare -a _arr=()
@@ -314,20 +320,21 @@ _splitString_() (
     printf '%s\n' "${_arr[@]}"
 )
 
+# @description Tests whether a string contains a given substring.
+#
+# @option -i | -I Ignore case during the search.
+#
+# @arg $1 string (required) The haystack (the string to search within).
+# @arg $2 string (required) The needle (the substring to search for).
+#
+# @exitcode 0 If the substring is found.
+# @exitcode 1 If the substring is not found.
+#
+# @example
+#   if _stringContains_ "Hello World" "World"; then echo "Found."; fi
+#   if _stringContains_ -i "Hello World" "world"; then echo "Found case-insensitively."; fi
+#
 _stringContains_() {
-    # DESC:
-    #         Tests whether a string contains a substring
-    # ARGS:
-    #         $1 (Required) - String to be tested
-    #         $2 (Required) - Substring to be tested for
-    # OPTIONS:
-    #          -i (Optional) - Ignore case
-    # OUTS:
-    #         0 - Search pattern found
-    #         1 - Pattern not found
-    # USAGE:
-    #         _stringContains_ "Hello World!" "lo"
-
     local opt
     local OPTIND=1
     while getopts ":iI" opt; do
@@ -351,21 +358,21 @@ _stringContains_() {
     fi
 }
 
+# @description Tests whether a string contains a given substring.
+#
+# @option -i | -I Ignore case during the search.
+#
+# @arg $1 string (required) The haystack (the string to search within).
+# @arg $2 string (required) The needle (the substring to search for).
+#
+# @exitcode 0 If the substring is found.
+# @exitcode 1 If the substring is not found.
+#
+# @example
+#   if _stringContains_ "Hello World" "World"; then echo "Found."; fi
+#   if _stringContains_ -i "Hello World" "world"; then echo "Found case-insensitively."; fi
+#
 _stringRegex_() {
-    # DESC:
-    #         Tests whether a string matches a regex pattern
-    # ARGS:
-    #         $1 (Required) - String to be tested
-    #         $2 (Required) - Regex pattern to be tested for
-    # OPTIONS:
-    #          -i (Optional) - Ignore case
-    # OUTS:
-    #         0 - Search pattern found
-    #         1 - Pattern not found
-    # USAGE:
-    #         _stringContains_ "HELLO" "^[A-Z]*$"
-    #         _stringContains_ -i "HELLO" "^[a-z]*$"
-
     local opt
     local OPTIND=1
     while getopts ":iI" opt; do
@@ -389,22 +396,20 @@ _stringRegex_() {
     fi
 }
 
+# @description Removes common English stopwords from a string.
+#
+# @arg $1 string (required) The string to parse.
+# @arg $2 string (optional) A comma-separated list of additional stopwords to remove.
+#
+# @stdout The string with stopwords removed.
+#
+# @note Requires GNU `sed`.
+# @note Requires a predefined `sed` file for the main stopword list, expected at `~/.sed/stopwords.sed`.
+#
+# @example
+#   _stripStopwords_ "this is a test sentence" # -> "test sentence"
+#
 _stripStopwords_() {
-    # DESC:
-    #         Removes common stopwords from a string using a list of sed replacements located
-    #         in an external file.  Additional stopwords can be added in arg2
-    # ARGS:
-    #         $1 (Required) - String to parse
-    #         $2 (Optional) - Additional stopwords (comma separated)
-    # OUTS:
-    #         0 - Success
-    #         1 - Error
-    #         stdout: Prints string cleaned of stopwords
-    # USAGE:
-    #         CLEAN_WORD="$(_stripStopwords_ "[STRING]" "[MORE,STOP,WORDS]")"
-    # NOTE:
-    #         Must have a sed file containing replacements. See: ../sedfiles/stopwords.sed
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     if ! sed --version | grep GNU &>/dev/null; then
@@ -437,18 +442,17 @@ _stripStopwords_() {
 
 }
 
+# @description Strips all ANSI escape sequences (color codes, etc.) from a string.
+#
+# @arg $1 string (required) The string containing ANSI codes.
+#
+# @stdout The clean string with all ANSI sequences removed.
+#
+# @example
+#   clean_text=$(_stripANSI_ $'\e[1;31mHello\e[0m')
+#   # clean_text is now "Hello"
+#
 _stripANSI_() {
-    # DESC:
-    #         Strips ANSI escape sequences from a string
-    # ARGS:
-    #         $1 (Required) - String to be cleaned
-    # OUTS:
-    #         0 - Success
-    #         1 - Failure
-    #         stdout:  Prints string with ANSI escape sequences removed
-    # USAGE:
-    #         _stripANSI_ "\e[1m\e[91mThis is bold red text\e(B\e[m.\e[92mThis is green text.\e(B\e[m"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _tmp
     local _esc
@@ -464,32 +468,28 @@ _stripANSI_() {
     printf "%s" "${_tmp}"
 }
 
+# @description Removes all leading/trailing whitespace and reduces internal duplicate spaces to a single space.
+#
+# @stdin The input string.
+# @stdout The trimmed string.
+#
+# @example
+#   echo "  hello   world  " | _trim_ # -> "hello world"
+#   trimmed_var=$(_trim_ <<<"  some text  ")
+#
 _trim_() {
-    # DESC:
-    #         Removes all leading/trailing whitespace and reduces internal duplicate spaces
-    #         to a single space.
-    # ARGS:
-    #         $1 (Required) - String to be trimmed
-    # OUTS:
-    #         stdout: Prints string with leading/trailing whitespace removed
-    # USAGE:
-    #         text=$(_trim_ <<<"$1")
-    #         printf "%s" "STRING" | _trim_
-    # NOTE:
-    #         Used through a pipe or here string.
-
     awk '{$1=$1;print}'
 }
 
+# @description Converts a string from stdin to uppercase.
+#
+# @stdin The input string.
+# @stdout The uppercased string.
+#
+# @example
+#   echo "hello world" | _upper_ # -> HELLO WORLD
+#   upper_var=$(_upper_ <<<"some text")
+#
 _upper_() {
-    # DESC:
-    #         Convert a string to uppercase. Used through a pipe or here string.
-    # ARGS:
-    #         None
-    # OUTS:
-    #         None
-    # USAGE:
-    #         text=$(_upper_ <<<"$1")
-    #         printf "%s" "STRING" | _upper_
     tr '[:lower:]' '[:upper:]'
 }

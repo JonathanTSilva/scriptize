@@ -1,4 +1,4 @@
-#===================================================================================================
+#=============================================================================
 # @file alerts.bash
 # @brief A library of functions for providing colorful, leveled alerts and logging them to a file.
 # @description
@@ -13,7 +13,7 @@
 #     - LOGFILE:  (path) The full path to the log file.
 #     - COLUMNS:  (integer) The width of the terminal.
 #
-#===================================================================================================
+#=============================================================================
 # shellcheck disable=SC2034,SC2154
 
 # @description Sets global color variables for use52 in alerts.

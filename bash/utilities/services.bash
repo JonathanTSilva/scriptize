@@ -1,25 +1,38 @@
-# Functions for working with network services
+#=============================================================================
+# @file services.bash
+# @brief A utility library for interacting with external network services.
+# @description
+#   This script provides wrapper functions for common network tasks, such as
+#   checking the HTTP status of a URL and sending push notifications via the
+#   Pushover service. These functions depend on the `curl` command-line tool.
+#=============================================================================
 
+# @description Reports the HTTP status of a specified URL using `curl`.
+#
+# @arg $1 string (required) The URL to check. The 'https://' prefix is optional.
+# @arg $2 integer (optional) The connection timeout in seconds. Defaults to 3.
+# @arg $3 string (optional) Output mode. Use '--code' or '-c' for the numeric code only, or '--status' or '-s' for the code and message. Defaults to '--status'.
+# @arg $@ string (optional) Additional options to pass directly to the `curl` command (e.g., `-L` to follow redirects).
+#
+# @stdout The HTTP status code, or the code followed by the status message, depending on the output mode.
+#
+# @note This function requires `curl` to be installed.
+#
+# @example
+#   # Get the status message for a redirection
+#   _httpStatus_ "bit.ly"
+#   # Output: 301 Redirection: Moved Permanently
+#
+#   # Get just the status code for a successful site
+#   _httpStatus_ "www.google.com" 5 --code
+#   # Output: 200
+#
+#   # Follow redirects and get the final status code
+#   _httpStatus_ "http://google.com" 5 --code -L
+#   # Output: 200
+#
+# @see [Gist by rsvp](https://gist.github.com/rsvp/1171304)
 _httpStatus_() {
-    # DESC:
-    #         Report the HTTP status of a specified URL
-    # ARGS:
-    #         $1 (Required) - URL (will work fine without https:// prefix)
-    #         $2 (Optional) - Seconds to wait until timeout (Default is 3)
-    #         $3 (Optional) - either '--code'  or '--status' (default)
-    #         $4 (optional) - CURL opts separated by spaces (Use -L to follow redirects)
-    # OUTS:
-    #         stdout: Prints the HTTP status code or status message
-    # USAGE:
-    #         _httpStatus_ URL [timeout] [--code or --status] [curl opts]
-    # NOTE:
-    #         https://gist.github.com/rsvp/1171304
-    # EXAMPLES
-    #         $ _httpStatus_ bit.ly
-    #         301 Redirection: Moved Permanently
-    #
-    #         $ _httpStatus_ www.google.com 100 --code
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _saveIFS=${IFS}
@@ -99,29 +112,35 @@ _httpStatus_() {
     IFS="${_saveIFS}"
 }
 
+# @description Sends a push notification via the Pushover service.
+#
+# @arg $1 string (required) The title of the notification.
+# @arg $2 string (required) The main message body of the notification.
+# @arg $3 string (required) Your Pushover Application API Token.
+# @arg $4 string (required) Your Pushover User/Group Key.
+# @arg $5 string (optional) The name of a specific device to send the notification to.
+#
+# @exitcode 0 If the notification was sent successfully (HTTP 200 OK).
+# @exitcode 1 If the `curl` command fails.
+#
+# @note This function requires `curl` to be installed.
+#
+# @example
+#   PUSHOVER_TOKEN="azG...s3"
+#   PUSHOVER_USER="uQ...4s"
+#   if ! _pushover_ "Job Complete" "The backup script finished." "${PUSHOVER_TOKEN}" "${PUSHOVER_USER}"; then
+#     error "Failed to send Pushover notification."
+#   fi
+#
+# @see [Credit](http://ryonsherman.blogspot.com/2012/10/shell-script-to-send-pushover.html)
 _pushover_() {
-    # DESC:
-    #         Sends a notification via Pushover
-    # ARGS:
-    #         $1 (Required) - Title of notification
-    #         $2 (Required) - Body of notification
-    #         $3 (Required) - User Token
-    #         $4 (Required) - API Key
-    #         $5 (Optional) - Device
-    # OUTS:
-    #         0 if success
-    #         1 if failure
-    # USAGE:  _pushover_ "Title Goes Here" "Message Goes Here"
-    # NOTE:   The variables for the two API Keys must have valid values
-    #         Credit: http://ryonsherman.blogspot.com/2012/10/shell-script-to-send-pushover.html
-
     [[ $# -lt 4 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _pushoverURL="https://api.pushover.net/1/messages.json"
     local _messageTitle="${1}"
     local _message="${2}"
-    local _apiKey="${3}"
-    local _userKey="${4}"
+    local _apiKey="${3}"  # This is the Application API Token
+    local _userKey="${4}" # This is the User/Group Key
     local _device="${5:-}"
 
     if curl \

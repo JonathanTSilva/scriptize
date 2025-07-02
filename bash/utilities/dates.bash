@@ -1,38 +1,50 @@
-# Functions to help work with dates and time
+#=============================================================================
+# @file dates.bash
+# @brief A utility library for date and time manipulation and conversion.
+# @description
+#   This script provides a collection of functions to handle common date and
+#   time operations. It supports converting between various date formats,
+#   calculating with Unix timestamps, and parsing dates from strings.
+#=============================================================================
 
+# @description Converts a human-readable date string into a Unix timestamp.
+#   Relies on the `date -d` command for parsing.
+#
+# @arg $1 string (required) A date string that the `date -d` command can understand (e.g., "Jan 10, 2019", "2025-06-30").
+#
+# @stdout The Unix timestamp corresponding to the input date.
+# @exitcode 0 On successful conversion.
+# @exitcode 1 If the `date` command fails to parse the input string.
+#
+# @example
+#   ts=$(_convertToUnixTimestamp_ "2025-07-01 12:00:00")
+#   echo "Timestamp: ${ts}"
+#
 _convertToUnixTimestamp_() {
-    # DESC:
-    #         Convert date string to unix timestamp
-    # ARGS:
-    #         $1 (Required) - Date to be converted
-    # OUTS:
-    #         0 If successful
-    #         1 If failed to convert
-    #         stdout: timestamp for specified date/time
-    # USAGE:
-    #         printf "%s\n" "$(_convertToUnixTimestamp_ "Jan 10, 2019")"
-    # NOTES:
-    #
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _date
     _date=$(date -d "${1}" +"%s") || return 1
     printf "%s\n" "${_date}"
-
 }
 
+# @description Displays a countdown timer for a specified duration.
+#   Prints a message at each interval. Uses the `info` alert function if available.
+#
+# @arg $1 integer (optional) Total seconds to count down from. Defaults to 10.
+# @arg $2 integer (optional) The sleep interval in seconds between messages. Defaults to 1.
+# @arg $3 string (optional) The message to print at each interval. Defaults to "...".
+#
+# @stdout The countdown message at each interval.
+#
+# @example
+#   _countdown_ 5 1 "Restarting in"
+#   # Output (one line per second):
+#   # [   INFO] Restarting in 5
+#   # [   INFO] Restarting in 4
+#   # ...
+#
 _countdown_() {
-    # DESC:
-    #         Sleep for a specified amount of time
-    # ARGS:
-    #         $1 (Optional) - Total seconds to sleep for(Default is 10)
-    #         $2 (Optional) - Increment to count down
-    #         $3 (Optional) - Message to print at each increment (default is ...)
-    # OUTS:
-    #         stdout: Prints the message at each increment
-    # USAGE:
-    #         _countdown_ 10 1 "Waiting for cache to invalidate"
-
     local i ii t
     local _n=${1:-10}
     local _sleepTime=${2:-1}
@@ -50,42 +62,39 @@ _countdown_() {
     done
 }
 
+# @description Gets the current time as a Unix timestamp (seconds since epoch, UTC).
+#
+# @stdout The current Unix timestamp (e.g., `1751352022`).
+# @exitcode 0 On success.
+# @exitcode 1 If the `date` command fails.
+#
+# @example
+#   current_timestamp=$(_dateUnixTimestamp_)
+#
 _dateUnixTimestamp_() {
-    # DESC:
-    #         Get the current time in unix timestamp
-    # ARGS:
-    #         None
-    # OUTS:
-    #         stdout: Prints result ~ 1591554426
-    #         0 If successful
-    #         1 If failed to get timestamp
-    # USAGE:
-    #         _dateUnixTimestamp_
-
     local _now
     _now="$(date --universal +%s)" || return 1
     printf "%s\n" "${_now}"
 }
 
+# @description Reformats a date string into a user-specified format.
+#
+# @arg $1 string (required) The input date string (e.g., "Jan 10, 2019").
+# @arg $2 string (optional) The output format for `date`. Defaults to `%F` (YYYY-MM-DD).
+#   Examples:
+#     - `%F` -> YYYY-MM-DD
+#     - `%D` -> MM/DD/YY
+#     - `%a` -> Mon
+#     - `%A` -> Monday
+#     - `'+%m %d, %Y'` -> 12 27, 2019
+#
+# @stdout The formatted date string.
+#
+# @example
+#   _formatDate_ "Jan 10, 2022" "%A, %B %d, %Y"
+#   # Output: Monday, January 10, 2022
+#
 _formatDate_() {
-    # DESC:
-    #         Reformats dates into user specified formats
-    # ARGS:
-    #         $1 (Required) - Date to be formatted
-    #         $2 (Optional) - Format in any format accepted by bash's date command.
-    #                         Examples:
-    #                           %F - YYYY-MM-DD
-    #                           %D - MM/DD/YY
-    #                           %a - Name of weekday in short (like Sun, Mon, Tue, Wed, Thu, Fri, Sat)
-    #                           %A - Name of weekday in full (like Sunday, Monday, Tuesday)
-    #                           '+%m %d, %Y'  - 12 27, 2019
-    # OUTS:
-    #         stdout: Prints result
-    # USAGE:
-    #         _formatDate_ "Jan 10, 2019" "%D"
-    # NOTE:
-    #         Defaults to YYYY-MM-DD or $(date +%F)
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _d="${1}"
@@ -95,44 +104,41 @@ _formatDate_() {
     date -d "${_d}" "+${_format}"
 }
 
+# @description Converts a total number of seconds into HH:MM:SS format.
+#
+# @arg $1 integer (required) The total number of seconds.
+#
+# @stdout The time formatted as a zero-padded HH:MM:SS string.
+#
+# @example
+#   STARTTIME=$(date +"%s")
+#   sleep 3
+#   ENDTIME=$(date +"%s")
+#   TOTALTIME=$((ENDTIME - STARTTIME))
+#   _fromSeconds_ "${TOTALTIME}" # -> 00:00:03
+#
 _fromSeconds_() {
-    # DESC:
-    #         Convert seconds to HH:MM:SS
-    # ARGS:
-    #         $1 (Required) - Time in seconds
-    # OUTS:
-    #         stdout: HH:MM:SS
-    # USAGE:
-    #         _fromSeconds_ "SECONDS"
-    # EXAMPLE:
-    #         To compute the time it takes a script to run:
-    #             STARTTIME=$(date +"%s")
-    #             ENDTIME=$(date +"%s")
-    #             TOTALTIME=$(($ENDTIME-$STARTTIME)) # human readable time
-    #             _fromSeconds_ "$TOTALTIME"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
-    local _h
-    local _m
-    local _s
-
+    local _h _m _s
     ((_h = ${1} / 3600))
     ((_m = (${1} % 3600) / 60))
     ((_s = ${1} % 60))
     printf "%02d:%02d:%02d\n" "${_h}" "${_m}" "${_s}"
 }
 
+# @description Converts a month name (full or abbreviated) to its corresponding number.
+#
+# @arg $1 string (required) The month name (case-insensitive).
+#
+# @stdout The corresponding month number (1-12).
+# @exitcode 1 If the month name is not recognized.
+#
+# @example
+#   _monthToNumber_ "January" # -> 1
+#   _monthToNumber_ "sep"     # -> 9
+#
 _monthToNumber_() {
-    # DESC:
-    #         Convert a month name to a number
-    # ARGS:
-    #         $1 (Required) - Month name
-    # OUTS:
-    #         stdout: Prints the number of the month (1-12)
-    # USAGE:
-    #         _monthToNumber_ "January"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _mon
@@ -158,16 +164,17 @@ _monthToNumber_() {
     esac
 }
 
+# @description Converts a month number to its full English name.
+#
+# @arg $1 integer (required) The month number (1-12).
+#
+# @stdout The full English name of the month.
+# @exitcode 1 If the number is not between 1 and 12.
+#
+# @example
+#   _numberToMonth_ 11 # -> November
+#
 _numberToMonth_() {
-    # DESC:
-    #         Convert a month number to its name
-    # ARGS:
-    #         $1 (Required) - Month number (1-12)
-    # OUTS:
-    #         stdout: Prints the name of the month
-    # USAGE:
-    #         _numberToMonth_ 11
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _mon="$1"
@@ -191,37 +198,47 @@ _numberToMonth_() {
     esac
 }
 
+# @description Parses a string to find and extract date components.
+#   This function is very complex and uses multiple regular expressions to find a date.
+#   If a date is found, it sets several global variables.
+#
+# @arg $1 string (required) A string containing a date.
+#
+# @set PARSE_DATE_FOUND The full date string found in the input.
+# @set PARSE_DATE_YEAR The four-digit year.
+# @set PARSE_DATE_MONTH The month as a number (1-12).
+# @set PARSE_DATE_MONTH_NAME The full name of the month.
+# @set PARSE_DATE_DAY The day of the month.
+# @set PARSE_DATE_HOUR The hour (0-23), if available.
+# @set PARSE_DATE_MINUTE The minute (0-59), if available.
+#
+# @exitcode 0 If a date is successfully found and parsed.
+# @exitcode 1 If no recognizable date is found.
+#
+# @note This function only recognizes dates from the year 2000 to 2029.
+# @note Recognized formats (separated by '-', '_', '.', '/', or space):
+#   - YYYY-MM-DD
+#   - Month DD, YYYY
+#   - DD Month, YYYY
+#   - Month, YYYY
+#   - Month, DD YY
+#   - MM-DD-YYYY
+#   - MMDDYYYY
+#   - YYYYMMDD
+#   - DDMMYYYY
+#   - YYYYMMDDHHMM
+#   - YYYYMMDDHH
+#   - DD MM YY
+#   - MM DD YY
+#
+# @example
+#   if _parseDate_ "An event on Jan 10, 2025 at 8pm"; then
+#     echo "Found: ${PARSE_DATE_MONTH_NAME} ${PARSE_DATE_DAY}, ${PARSE_DATE_YEAR}"
+#   fi
+#
+# TODO: Implement the following date formats: MMDDYY, YYMMDD, mon-DD-YY
+# TODO: Simplify and reduce the number of regex checks
 _parseDate_() {
-    # DESC:
-    #         Takes a string as input and attempts to find a date within it to parse
-    #         into component parts (day, month, year)
-    # ARGS:
-    #         $1 (required) - A string
-    # OUTS:
-    #         0 if date is found
-    #         1 if date is NOT found
-    #         If a date was found, the following variables are set:
-    #             $PARSE_DATE_FOUND      - The date found in the string
-    #             $PARSE_DATE_YEAR       - The year
-    #             $PARSE_DATE_MONTH      - The number month
-    #             $PARSE_DATE_MONTH_NAME - The name of the month
-    #             $PARSE_DATE_DAY        - The day
-    #             $PARSE_DATE_HOUR       - The hour (if avail)
-    #             $PARSE_DATE_MINUTE     - The minute (if avail)
-    # USAGE:
-    #             if _parseDate_ "[STRING]"; then ...
-    # NOTE:
-    #         - This function only recognizes dates from the year 2000 to 202
-    #         - Will recognize dates in the following formats separated by '-_ ./'
-    #               * YYYY-MM-DD      * Month DD, YYYY    * DD Month, YYYY
-    #               * Month, YYYY     * Month, DD YY      * MM-DD-YYYY
-    #               * MMDDYYYY        * YYYYMMDD          * DDMMYYYY
-    #               * YYYYMMDDHHMM    * YYYYMMDDHH        * DD-MM-YYYY
-    #               * DD MM YY        * MM DD YY
-    # TODO:   Impelemt the following date formats
-    #               * MMDDYY          * YYMMDD            * mon-DD-YY
-    # TODO:  Simplify and reduce the number of regex checks
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _stringToTest="${1}"
@@ -267,10 +284,10 @@ _parseDate_() {
     #  DD Month YYYY
     elif [[ ${_stringToTest} =~ (.*[^0-9]|^)(([0-9]{2})[-\./_ ]+(january|jan|ja|february|feb|fe|march|mar|ma|april|apr|ap|may|june|jun|july|jul|ju|august|aug|september|sep|october|oct|november|nov|december|dec),?[-\./_ ]+(20[0-2][0-9]))([^0-9].*|$) ]]; then
         PARSE_DATE_FOUND="${BASH_REMATCH[2]}"
-        PARSE_DATE_DAY=$((10#"${BASH_REMATCH[3]}"))
+        PARSE_DATE_DAY=$((10#${BASH_REMATCH[3]}))
         PARSE_DATE_MONTH="$(_monthToNumber_ "${BASH_REMATCH[4]}")"
         PARSE_DATE_MONTH_NAME="$(_numberToMonth_ "${PARSE_DATE_MONTH}")"
-        PARSE_DATE_YEAR=$((10#"${BASH_REMATCH[5]}"))
+        PARSE_DATE_YEAR=$((10#${BASH_REMATCH[5]}))
         debug "regex match: DD Month, YYYY"
 
     # MM-DD-YYYY  or  DD-MM-YYYY
@@ -498,23 +515,21 @@ _parseDate_() {
     shopt -u nocasematch
 }
 
+# @description Formats a Unix timestamp into a human-readable date/time string.
+#
+# @arg $1 integer (required) The Unix timestamp to format.
+# @arg $2 string (optional) The output format string for 'date'. Defaults to "%F %T" (e.g., "2025-07-01 12:30:00").
+#
+# @stdout The formatted date and time string.
+# @exitcode 0 On success.
+# @exitcode 1 If the 'date' command fails.
+#
+# @example
+#   _readableUnixTimestamp_ "1751352022" # -> 2025-07-01 12:00:22
+#   _readableUnixTimestamp_ "1751352022" "%D" # -> 07/01/25
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility/blob/master/src/date.sh)
 _readableUnixTimestamp_() {
-    # DESC:
-    #         Format unix timestamp to human readable format. If format string is not specified then
-    #         default to "yyyy-mm-dd hh:mm:ss"
-    # ARGS:
-    #         $1 (Required) - Unix timestamp to be formatted
-    #         $2 (Optional) - Format string
-    # OUTS:
-    #         0 If successful
-    #         1 If failed to convert
-    #         stdout: Human readable format of unix timestamp
-    # USAGE:
-    #         _readableUnixTimestamp_ "1591554426"
-    #         _readableUnixTimestamp_ "1591554426" "%Y-%m-%d"
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility/blob/master/src/date.sh
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _timestamp="${1}"
     local _format="${2:-"%F %T"}"
@@ -523,31 +538,27 @@ _readableUnixTimestamp_() {
     printf "%s\n" "${_out}"
 }
 
+# @description Converts a time string in HH:MM:SS format to the total number of seconds.
+#
+# @arg $1 string (required) The time string to convert.
+# @arg $2 integer (optional) Minutes, if providing H M S as separate arguments.
+# @arg $3 integer (optional) Seconds, if providing H M S as separate arguments.
+#
+# @stdout The total number of seconds.
+#
+# @note Acceptable Input Formats for a single string argument:
+#   - 12:12:09 (and with other separators: ',', '-', '_', space)
+#   - 12H12M09S (case-insensitive)
+#
+# @example
+#   _toSeconds_ "01:02:03" # -> 3723
+#   _toSeconds_ 1 2 3      # -> 3723
+#
 _toSeconds_() {
-    # DESC:
-    #         Converts HH:MM:SS to seconds
-    # ARGS:
-    #         $1 (Required) - Time in HH:MM:SS
-    # OUTS:
-    #         stdout: Print seconds
-    # USAGE:
-    #         _toSeconds_ "01:00:00"
-    # NOTE:
-    #         Acceptable Input Formats
-    #           24 12 09
-    #           12,12,09
-    #           12;12;09
-    #           12:12:09
-    #           12-12-09
-    #           12H12M09S
-    #           12h12m09s
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _saveIFS
-    local _h
-    local _m
-    local _s
+    local _h _m _s
 
     if [[ $1 =~ [0-9]{1,2}(:|,|-|_|,| |[hHmMsS])[0-9]{1,2}(:|,|-|_|,| |[hHmMsS])[0-9]{1,2} ]]; then
         _saveIFS="${IFS}"

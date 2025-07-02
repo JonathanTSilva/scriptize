@@ -1,19 +1,32 @@
-# Functions for manipulating arrays
+#=============================================================================
+# @file arrays.bash
+# @brief A utility library for common array manipulations in Bash.
+# @description
+#   This script provides a collection of portable and robust functions for
+#   working with Bash arrays. It includes functions for sorting, filtering,
+#   joining, de-duplicating, and iterating over array elements.
+#
+#   Many functions leverage standard input (stdin) for receiving array elements,
+#   allowing for flexible use with pipelines.
+#=============================================================================
 
+# @description Removes duplicate elements from an array.
+#   Maintains the order of the first occurrence of each unique element.
+#
+# @arg $@ any (required) The input array elements to be de-duplicated.
+#
+# @stdout Prints the unique elements, one per line.
+#
+# @note The original list order of unique elements is preserved.
+#
+# @example
+#   local my_array=("a" "c" "b" "a" "c")
+#   local new_array
+#   mapfile -t new_array < <(_dedupeArray_ "${my_array[@]}")
+#   # new_array will contain ("a" "c" "b")
+#
+# @see [pure-bash-bible](https://github.com/dylanaraps/pure-bash-bible)
 _dedupeArray_() {
-    # DESC:
-    #         Removes duplicate array elements
-    # ARGS:
-    #         $1 (Required) - Input array
-    # OUTS:
-    #         stdout: Prints de-duped elements
-    # USAGE:
-    #         mapfile -t newarray < <(_dedupeArray_ "${array[@]}")
-    # NOTE:
-    #         List order may not stay the same
-    # CREDIT:
-    #         https://github.com/dylanaraps/pure-bash-bible
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     declare -A _tmpArray
     declare -a _uniqueArray
@@ -25,21 +38,22 @@ _dedupeArray_() {
     printf '%s\n' "${_uniqueArray[@]}"
 }
 
+# @description Iterates over elements from stdin and executes a callback function for each one.
+#
+# @arg $1 string (required) The name of the function to execute for each item.
+#
+# @stdin any The elements to iterate over, one per line.
+#
+# @stdout The combined output of all commands executed by the callback function.
+# @exitcode 0 On full successful iteration.
+# @exitcode N The exit code of the first failing command from the callback function.
+#
+# @example
+#   test_func() { echo "Processing: $1"; }
+#   printf "%s\n" "apple" "banana" | _forEachDo_ "test_func"
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _forEachDo_() {
-    # DESC:
-    #         Iterates over elements and passes each to a function
-    # ARGS:
-    #         $1 (Required) - Function name to pass each item to
-    # OUTS:
-    #         0 - Success
-    #         Return code of called function
-    #         tdout: Output of called function
-    # USAGE:
-    #         printf "%s\n" "${arr1[@]}" | _forEachDo_ "test_func"
-    #         _forEachDo_ "test_func" < <(printf "%s\n" "${arr1[@]}")  # alternative approach
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _func="${1}"
@@ -64,20 +78,23 @@ _forEachDo_() {
     done
 }
 
+# @description Iterates over elements from stdin, passing each to a validation function.
+#   The iteration stops as soon as any element fails validation.
+#
+# @arg $1 string (required) The validation function to call for each item.
+#
+# @stdin any The elements to iterate over, one per line.
+#
+# @exitcode 0 If all elements are successfully validated.
+# @exitcode 1 If any element fails validation.
+#
+# @example
+#   # Assuming _isNum_ is a function that checks if input is numeric.
+#   printf "1\n2\n3\n" | _forEachValidate_ "_isNum_" # returns 0
+#   printf "1\n_a_\n3\n" | _forEachValidate_ "_isNum_" # returns 1
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _forEachValidate_() {
-    # DESC:
-    #         Iterates over elements and passes each to a function for validation. Iteration stops when the function returns 1.
-    # ARGS:
-    #         $1 (Required) - Function name to pass each item to for validation. (Must return 0 on success)
-    # OUTS:
-    #         0 - Success
-    #         1 - Iteratee function fails
-    # USAGE:
-    #         printf "%s\n" "${array[@]}" | _forEachValidate_ "_isAlpha_"
-    #         _forEachValidate_ "_isAlpha_" < <(printf "%s\n" "${array[@]}")
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _func="${1}"
@@ -102,21 +119,23 @@ _forEachValidate_() {
     done
 }
 
+# @description Iterates over elements from stdin, returning the first value that is validated by a function.
+#
+# @arg $1 string (required) The validation function to call for each item.
+#
+# @stdin any The elements to iterate over, one per line.
+#
+# @stdout The first element that successfully passes the validation function.
+# @exitcode 0 If a matching element is found.
+# @exitcode 1 If no element matches the validation.
+#
+# @example
+#   local array=("a" "b" "3" "d")
+#   first_num=$(printf "%s\n" "${array[@]}" | _forEachFind_ "_isNum_")
+#   # first_num will be "3"
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _forEachFind_() {
-    # DESC:
-    #         Iterates over elements, returning success and printing the first value that is validated by a function
-    # ARGS:
-    #         $1 (Required) - Function name to pass each item to for validation. (Must return 0 on success)
-    # OUTS:
-    #         0 - If successful
-    #         1 - If iteratee function fails
-    #         stdout:  First value that is validated by the function
-    # USAGE:
-    #         printf "%s\n" "${array[@]}" | _forEachFind_ "_isAlpha_"
-    #         _forEachFind_ "_isAlpha_" < <(printf "%s\n" "${array[@]}")
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     declare _func="${1}"
@@ -138,21 +157,21 @@ _forEachFind_() {
     return 1
 }
 
+# @description Iterates over elements from stdin, returning only those that are validated by a function.
+#
+# @arg $1 string (required) The validation function to call for each item.
+#
+# @stdin any The elements to iterate over, one per line.
+#
+# @stdout A list of all elements that successfully pass the validation function, one per line.
+#
+# @example
+#   local array=("a" "1" "b" "2")
+#   mapfile -t numbers < <(printf "%s\n" "${array[@]}" | _forEachFilter_ "_isNum_")
+#   # numbers will contain ("1" "2")
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _forEachFilter_() {
-    # DESC:
-    #         Iterates over elements, returning only those that are validated by a function
-    # ARGS:
-    #         $1 (Required) - Function name to pass each item to for validation. (Must return 0 on success)
-    # OUTS:
-    #         0 - Success
-    #         1 - Failure
-    #         stdout: Values matching the validation function
-    # USAGE:
-    #         printf "%s\n" "${array[@]}" | _forEachFind_ "_isAlpha_"
-    #         _forEachFilter_ "_isAlpha_" < <(printf "%s\n" "${array[@]}")
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _func="${1}"
@@ -170,20 +189,22 @@ _forEachFilter_() {
     done
 }
 
+# @description The opposite of `_forEachFilter_`. Iterates over elements, returning only those that are NOT validated by a function.
+#
+# @arg $1 string (required) The validation function to call for each item.
+#
+# @stdin any The elements to iterate over, one per line.
+#
+# @stdout A list of all elements that fail the validation function, one per line.
+#
+# @example
+#   local array=("a" "1" "b" "2")
+#   mapfile -t letters < <(printf "%s\n" "${array[@]}" | _forEachReject_ "_isNum_")
+#   # letters will contain ("a" "b")
+#
+# @see _forEachFilter_()
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _forEachReject_() {
-    # DESC:
-    #         The opposite of _forEachFilter_. Iterates over elements, returning only those that are not validated by a function
-    # ARGS:
-    #         $1 (Required) - Function name to pass each item to for validation. (Must return 0 on success, 1 on failure)
-    # OUTS:
-    #         0 - Success
-    #         stdout:  Values NOT matching the validation function
-    # USAGE:
-    #         printf "%s\n" "${array[@]}" | _forEachReject_ "_isAlpha_"
-    #         _forEachReject_ "_isAlpha_" < <(printf "%s\n" "${array[@]}")
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _func="${1}"
@@ -201,20 +222,25 @@ _forEachReject_() {
     done
 }
 
+# @description Iterates over elements from stdin, returning successfully if any element validates as true.
+#
+# @arg $1 string (required) The validation function to call for each item.
+#
+# @stdin any The elements to iterate over, one per line.
+#
+# @exitcode 0 If at least one element passes validation.
+# @exitcode 1 If no elements pass validation.
+#
+# @example
+#   local array=("a" "b" "c")
+#   if printf "%s\n" "${array[@]}" | _forEachSome_ "_isNum_"; then
+#     echo "Array contains a number."
+#   else
+#     echo "Array does not contain a number."
+#   fi
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _forEachSome_() {
-    # DESC:
-    #         Iterates over elements, returning true if any of the elements validate as true from the function.
-    # ARGS:
-    #         $1 (Required) - Function name to pass each item to for validation. (Must return 0 on success, 1 on failure)
-    # OUTS:
-    #         0 If match successful
-    #         1 If no match found
-    # USAGE:
-    #         printf "%s\n" "${array[@]}" | _forEachSome_ "_isAlpha_"
-    #         _forEachSome_ "_isAlpha_" < <(printf "%s\n" "${array[@]}")
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _func="${1}"
     local IFS=$'\n'
@@ -235,24 +261,23 @@ _forEachSome_() {
     return 1
 }
 
+# @description Determine if a value exists in an array. Supports case-insensitive matching.
+#
+# @option -i | -I Ignore case during the match.
+#
+# @arg $1 string (required) The value or regex pattern to search for.
+# @arg $@ any (required) The array elements to search within.
+#
+# @exitcode 0 If the value is found in the array.
+# @exitcode 1 If the value is not found.
+#
+# @example
+#   local my_array=("apple" "banana" "ORANGE")
+#   if _inArray_ "banana" "${my_array[@]}"; then echo "Found banana"; fi
+#   if _inArray_ -i "orange" "${my_array[@]}"; then echo "Found orange (case-insensitive)"; fi
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _inArray_() {
-    # DESC:
-    #         Determine if a regex matches an array element.  Default is case sensitive.
-    #         Pass -i flag to ignore case.
-    # ARGS:
-    #         $1 (Required) - Value to search for
-    #         $2 (Required) - Array written as ${ARRAY[@]}
-    # OPTIONS:
-    #         -i (Optional) - Ignore case
-    # OUTS:
-    #         0 if true
-    #         1 if untrue
-    # USAGE:
-    #         if _inArray_ "VALUE" "${ARRAY[@]}"; then ...
-    #         if _inArray_  -i "VALUE" "${ARRAY[@]}"; then ...
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local opt
@@ -278,38 +303,39 @@ _inArray_() {
     return 1
 }
 
+# @description Checks if an array is empty.
+#
+# @arg $@ any The array elements to check.
+#
+# @exitcode 0 If the array is empty (no arguments passed).
+# @exitcode 1 If the array is not empty.
+#
+# @example
+#   local empty_array=()
+#   local full_array=("a")
+#   _isEmptyArray_ "${empty_array[@]}" # returns 0
+#   _isEmptyArray_ "${full_array[@]}"  # returns 1
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _isEmptyArray_() {
-    # DESC:
-    #         Checks if an array is empty
-    # ARGS:
-    #         $1 (Required) - Input array
-    # OUTS:
-    #         0 if empty
-    #         1 if not empty
-    # USAGE:
-    #         _isEmptyArray_ "${array[@]}"
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [ ${#@} -eq 0 ]
 }
 
+# @description Joins array elements into a single string with a specified separator.
+#
+# @arg $1 string (required) The separator/delimiter to use.
+# @arg $@ string (required) The elements to join.
+#
+# @stdout The joined string.
+#
+# @example
+#   _joinArray_ "," "a" "b" "c" # -> a,b,c
+#   local my_array=("var" "log" "app.log")
+#   _joinArray_ "/" "${my_array[@]}" # -> var/log/app.log
+#
+# @see [Stack Overflow](http://stackoverflow.com/questions/1527049/bash-join-elements-of-an-array)
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _joinArray_() {
-    # DESC:
-    #         Joins items together with a user specified separator
-    # ARGS:
-    #         $1 (Required) - Separator
-    #         $@ (Required) - Array or space separated items to be joined
-    # OUTS:
-    #         stdout:  Prints joined terms
-    # USAGE:
-    #         _joinArray_ , a "b c" d #a,b c,d
-    #         _joinArray_ / var local tmp #var/local/tmp
-    #         _joinArray_ , "${foo[@]}" #a,b,c
-    # CREDIT:
-    #         http://stackoverflow.com/questions/1527049/bash-join-elements-of-an-array
-    #         https://github.com/labbots/bash-utility
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _delimiter="${1}"
@@ -319,21 +345,24 @@ _joinArray_() {
     printf "%s" "${@/#/${_delimiter}}"
 }
 
+# @description Merges two arrays together.
+#
+# @arg $1 string (required) The name of the first array variable (e.g., `"array1[@]"`).
+# @arg $2 string (required) The name of the second array variable (e.g., `"array2[@]"`).
+#
+# @stdout The elements of both arrays combined, one per line.
+#
+# @note This function uses indirect expansion, so the array names must be passed as strings.
+#
+# @example
+#   local arr1=("a" "b")
+#   local arr2=("c" "d")
+#   local merged
+#   mapfile -t merged < <(_mergeArrays_ "arr1[@]" "arr2[@]")
+#   # merged will contain ("a" "b" "c" "d")
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _mergeArrays_() {
-    # DESC:
-    #         Merges two arrays together
-    # ARGS:
-    #         $1 (Required) - Array 1
-    #         $2 (Required) - Array 2
-    # OUTS:
-    #         stdout: Prints result
-    # USAGE:
-    #         newarray=($(_mergeArrays_ "array1[@]" "array2[@]"))
-    # NOTE:
-    #         Note that the arrays must be passed in as strings
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# -ne 2 ]] && fatal 'Missing required argument to _mergeArrays_'
     declare -a _arr1=("${!1}")
     declare -a _arr2=("${!2}")
@@ -341,22 +370,26 @@ _mergeArrays_() {
     printf "%s\n" "${_outputArray[@]}"
 }
 
+# @description Sorts an array in reverse alphabetical and numerical order (z-a, 9-0).
+#
+# @arg $@ any (required) The array elements to sort.
+#
+# @stdout The sorted elements, one per line.
+#
+# @example
+#   local input=("c" "b" "4" "1" "2" "3" "a")
+#   _reverseSortArray_ "${input[@]}"
+#   # Output:
+#   # c
+#   # b
+#   # a
+#   # 4
+#   # 3
+#   # 2
+#   # 1
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _reverseSortArray_() {
-    # DESC:
-    #           Sorts an array from lowest to highest (z-a9-0)
-    # ARGS:
-    #           $1 (Required) - Input array
-    # OUTS:
-    #           stdout: Prints result
-    # USAGE:
-    #           _reverseSortArray_ "${array[@]}"
-    # NOTE:
-    #           input=("c" "b" "4" "1" "2" "3" "a")
-    #           _reverseSortArray_ "${input[@]}"
-    #           c b a 4 3 2 1
-    # CREDIT:
-    #           https://github.com/labbots/bash-utility
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     declare -a _array=("$@")
     declare -a _sortedArray
@@ -364,18 +397,18 @@ _reverseSortArray_() {
     printf "%s\n" "${_sortedArray[@]}"
 }
 
+# @description Selects a single random element from an array.
+#
+# @arg $@ any (required) The array elements to choose from.
+#
+# @stdout A single, randomly selected element from the input.
+#
+# @example
+#   local fruits=("apple" "banana" "cherry")
+#   local random_fruit=$(_randomArrayElement_ "${fruits[@]}")
+#
+# @see [pure-bash-bible](https://github.com/dylanaraps/pure-bash-bible)
 _randomArrayElement_() {
-    # DESC:
-    #         Selects a random item from an array
-    # ARGS:
-    #         $1 (Required) - Input array
-    # OUTS:
-    #         stdout: Prints one random element
-    # USAGE:
-    #         _randomArrayElement_ "${array[@]}"
-    # CREDIT:
-    #         https://github.com/dylanaraps/pure-bash-bible
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     declare -a _array
@@ -383,24 +416,25 @@ _randomArrayElement_() {
     printf '%s\n' "${_array[RANDOM % $#]}"
 }
 
+# @description Calculates the set difference, returning items that exist in the first array but not in the second.
+#
+# @arg $1 string (required) The name of the first array variable (e.g., `"array1[@]"`).
+# @arg $2 string (required) The name of the second array variable (e.g., `"array2[@]"`).
+#
+# @stdout The elements present in the first array but not in the second, one per line.
+# @exitcode 0 If a non-empty set difference is found.
+# @exitcode 1 If the arrays are identical or the difference is empty.
+#
+# @note This function uses indirect expansion, so the array names must be passed as strings.
+#
+# @example
+#   local A=("a" "b" "c")
+#   local B=("b" "d")
+#   mapfile -t C < <(_setDiff_ "A[@]" "B[@]")
+#   # C will contain ("a" "c")
+#
+# @see [Stack Overflow](http://stackoverflow.com/a/1617303/142339)
 _setDiff_() {
-    # DESC:
-    #         Return items that exist in ARRAY1 that are do not exist in ARRAY2
-    # ARGS:
-    #         $1 (Required) - Array 1 (in format ARRAY[@])
-    #         $2 (Required) - Array 2 (in format ARRAY[@])
-    # OUTS:
-    #         0 if unique elements found
-    #         1 if arrays are the same
-    #         stdout: Prints unique elements
-    # USAGE:
-    #         _setDiff_ "array1[@]" "array2[@]"
-    #         mapfile -t NEW_ARRAY < <(_setDiff_ "array1[@]" "array2[@]")
-    # NOTE:
-    #         Note that the arrays must be passed in as strings
-    # CREDIT:
-    #         http://stackoverflow.com/a/1617303/142339
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _skip
@@ -428,22 +462,26 @@ _setDiff_() {
     fi
 }
 
+# @description Sorts an array in standard alphabetical and numerical order (0-9, a-z).
+#
+# @arg $@ any (required) The array elements to sort.
+#
+# @stdout The sorted elements, one per line.
+#
+# @example
+#   local input=("c" "b" "4" "1" "2" "3" "a")
+#   _sortArray_ "${input[@]}"
+#   # Output:
+#   # 1
+#   # 2
+#   # 3
+#   # 4
+#   # a
+#   # b
+#   # c
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _sortArray_() {
-    # DESC:
-    #         Sorts an array from lowest to highest (0-9 a-z)
-    # ARGS:
-    #         $1 (Required) - Input array
-    # OUTS:
-    #         stdout: Prints result
-    # USAGE:
-    #         _sortArray_ "${array[@]}"
-    # NOTE:
-    #         input=("c" "b" "4" "1" "2" "3" "a")
-    #         _sortArray_ "${input[@]}"
-    #         1 2 3 4 a b c
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# -eq 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     declare -a _array=("$@")
     declare -a _sortedArray

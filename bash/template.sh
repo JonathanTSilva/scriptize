@@ -1,11 +1,27 @@
 #!/usr/bin/env bash
+#=============================================================================
+# @file template.sh
+# @brief A robust, boilerplate template for creating powerful and safe Bash scripts.
+# @description
+#   This script serves as a foundational template for developing new command-line
+#   tools. It provides a standard structure, a rich set of utility functions,
+#   and best practices for error handling, argument parsing, and logging.
+#
+#   The script is organized into three main sections:
+#     1. **MAIN:** The `_mainScript_` function at the top is the primary entry point for your custom logic.
+#     2. **BASE FUNCTIONS:** The middle section contains the core framework functions for argument parsing, help text, error handling, etc.
+#     3. **HUB:** The bottom section initializes the script environment (e.g., `set -e`) and runs the main logic.
+#=============================================================================
+
 # shellcheck source-path=SCRIPTDIR/utilities
 # shellcheck source-path=SCRIPTDIR/../utilities
 
 #=============================================================================
 #----------------------------------- MAIN ------------------------------------
 #=============================================================================
-#------- Replace everything in _mainScript_() with your script's code --------
+# @description
+#   This is the main entry point for the script's logic.
+#   Replace the content of this function with your own code.
 _mainScript_() {
 
     header "Showing alert colors"
@@ -36,6 +52,22 @@ declare -a ARGS=()
 #------------------------------ BASE FUNCTIONS -------------------------------
 #=============================================================================
 
+# @description The script's main error handler and cleanup function.
+#   This function is called by the `trap` command on any error, interrupt, or exit signal.
+#   It logs the error details and ensures a safe exit.
+#
+# @arg $1 integer (required) The line number where the error was trapped (`${LINENO}`).
+# @arg $2 integer (required) The line number in the function where the error occurred (`${BASH_LINENO}`).
+# @arg $3 string (required) The command that was executing at the time of the trap (`${BASH_COMMAND}`).
+# @arg $4 string (required) The shell function call stack (`${FUNCNAME[*]}`).
+# @arg $5 string (required) The name of the script (`${0}`).
+# @arg $6 string (required) The source of the script (`${BASH_SOURCE[0]}`).
+#
+# @exitcode 1 Always exits the script with status 1 after logging the fatal error.
+#
+# @example
+#   trap '_trapCleanup_ ${LINENO} ${BASH_LINENO} "${BASH_COMMAND}" "${FUNCNAME[*]}" "${0}" "${BASH_SOURCE[0]}"' EXIT INT TERM SIGINT SIGQUIT SIGTERM
+#
 _trapCleanup_() {
     # DESC:
     #         Log errors and cleanup from script when an error is trapped.  Called by 'trap'
@@ -81,6 +113,16 @@ _trapCleanup_() {
     fi
 }
 
+# @description Locates the real, absolute directory of the script being run.
+#   It correctly resolves symlinks to find the true script path.
+#
+# @stdout The absolute path to the directory containing the script.
+#
+# @example
+#   # If this is in a script at /usr/local/bin/myscript
+#   baseDir="$(_findBaseDir_)"
+#   # baseDir is now "/usr/local/bin"
+#
 _findBaseDir_() {
     # DESC:
     #         Locates the real directory of the script being run. Similar to GNU readlink -n
@@ -110,6 +152,17 @@ _findBaseDir_() {
     printf "%s\n" "$(cd -P "$(dirname "${_source}")" && pwd)"
 }
 
+# @description Sources all utility function files from a specified directory.
+#   The script will exit if any of the required utility files are not found.
+#
+# @arg $1 path (required) The absolute path to the 'utilities' directory.
+#
+# @exitcode 0 On success.
+# @exitcode 1 If any of the utility files cannot be found and sourced.
+#
+# @example
+#   _sourceUtilities_ "$(_findBaseDir_)/utilities"
+#
 _sourceUtilities_() {
     # DESC:
     #         Sources utility functions.  Absolute paths are required for shellcheck to correctly
@@ -203,6 +256,24 @@ _sourceUtilities_() {
     fi
 }
 
+# @description Parses command-line options and arguments passed to the script.
+#   It handles combined short options (e.g., `-vn`), long options with equals
+#   (e.g., `--logfile=/path/to.log`), and populates the global `$ARGS` array
+#   with any remaining non-option arguments.
+#
+# @arg $@ string (required) The command-line arguments passed to the script (`"$@"`).
+#
+# @set ARGS An array containing all non-option arguments.
+# @set LOGFILE The path to the log file, if specified with `--logfile`.
+# @set LOGLEVEL The logging verbosity, if specified with `--loglevel`.
+# @set DRYRUN Boolean `true` if `-n` or `--dryrun` is passed.
+# @set VERBOSE Boolean `true` if `-v` or `--verbose` is passed.
+# @set QUIET Boolean `true` if `-q` or `--quiet` is passed.
+# @set FORCE Boolean `true` if `--force` is passed.
+#
+# @example
+#   _parseOptions_ "$@"
+#
 _parseOptions_() {
     # DESC:
     #         Iterates through options passed to script and sets variables. Will break -ab into -a -b
@@ -293,6 +364,11 @@ _parseOptions_() {
     fi
 }
 
+# @description Displays the script's help message and usage information.
+#
+# @stdout The formatted help text.
+# @note The content of this function should be edited by the developer to describe their specific script.
+#
 _usage_() {
     cat <<USAGE_TEXT
 
@@ -320,20 +396,21 @@ USAGE_TEXT
 #----------------------------------- HUB -------------------------------------
 #=============================================================================
 #----------------------- INITIALIZE AND RUN THE SCRIPT -----------------------
-#---- Comment or uncomment the lines below to customize script behavior) -----
+#---- Comment or uncomment the lines below to customize script behavior ------
 
+# Set a trap for any error or interrupt signal. Calls the _trapCleanup_ function.
 trap '_trapCleanup_ ${LINENO} ${BASH_LINENO} "${BASH_COMMAND}" "${FUNCNAME[*]}" "${0}" "${BASH_SOURCE[0]}"' EXIT INT TERM SIGINT SIGQUIT SIGTERM
 
 # Trap errors in subshells and functions
 set -o errtrace
 
-# Exit on error. Append '||true' if you expect an error
+# Exit on error. Append '|| true' to a command if you expect an error
 set -o errexit
 
 # Use last non-zero exit code in a pipeline
 set -o pipefail
 
-# Confirm we have BASH greater than v4
+# Confirm we have BASH version 4 or greater
 [ "${BASH_VERSINFO:-0}" -ge 4 ] || {
     printf "%s\n" "ERROR: BASH_VERSINFO is '${BASH_VERSINFO:-0}'.  This script requires BASH v4 or greater."
     exit 1
@@ -342,13 +419,13 @@ set -o pipefail
 # Make `for f in *.txt` work when `*.txt` matches zero files
 shopt -s nullglob globstar
 
-# Set IFS to preferred implementation
+# Set IFS to a saner default
 IFS=$' \n\t'
 
-# Run in debug mode
+# Run in debug mode, printing each command
 # set -o xtrace
 
-# Source utility functions
+# Source all utility functions from the 'utilities' directory
 _sourceUtilities_ "$(_findBaseDir_)/utilities"
 
 # Initialize color constants
@@ -357,26 +434,26 @@ _setColors_
 # Disallow expansion of unset variables
 set -o nounset
 
-# Force arguments when invoking the script
+# Force arguments when invoking the script. If no arguments are passed, show usage.
 # [[ $# -eq 0 ]] && _parseOptions_ "-h"
 
-# Parse arguments passed to script
+# Parse all command-line arguments
 _parseOptions_ "$@"
 
-# Create a temp directory '$TMP_DIR'
+# Create a temporary directory in '$TMP_DIR'
 # _makeTempDir_ "$(basename "$0")"
 
-# Acquire script lock
+# Acquire a script lock to prevent concurrent execution
 # _acquireScriptLock_
 
-# Add Homebrew bin directory to PATH (MacOS)
+# Add Homebrew binary directory to PATH (macOS-specific)
 # _homebrewPath_
 
-# Source GNU utilities from Homebrew (MacOS)
+# Prepend paths to GNU utilities from Homebrew (macOS-specific)
 # _useGNUutils_
 
-# Run the main logic script
+# Run the main logic of the script
 _mainScript_
 
-# Exit cleanly
+# Exit cleanly (removes temp files and script lock)
 _safeExit_

@@ -1,19 +1,34 @@
-# Functions required to allow the script template and alert functions to be used
-# shellcheck disable=SC2154
+#=============================================================================
+# @file template_utils.bash
+# @brief Foundational functions required by the script templates and core utilities.
+# @description
+#   This script provides essential functions that form the backbone of the script
+#   template system. It handles script locking to prevent concurrent execution,
+#   manages temporary directories, ensures safe script cleanup and exit, and
+#   modifies the system `$PATH`.
+#=============================================================================
 
-# shellcheck disable=SC2120
+# @description Acquires a script lock to prevent multiple instances from running simultaneously.
+#   The lock is an empty directory created in `/tmp`. The script will exit if the lock
+#   cannot be acquired.
+#
+# @arg $1 string (optional) The scope of the lock. Can be 'system' for a system-wide lock,
+#   or defaults to a user-specific lock (based on `$UID`).
+#
+# @set SCRIPT_LOCK The path to the created lock directory. This variable is exported as readonly.
+#
+# @note The lock is automatically released by the `_safeExit_` function upon script termination.
+#
+# @example
+#   # Acquire a lock unique to the current user
+#   _acquireScriptLock_
+#
+#   # Acquire a system-wide lock
+#   _acquireScriptLock_ "system"
+#
+# @see _safeExit_()
 _acquireScriptLock_() {
-    # DESC:
-    #         Acquire script lock to prevent running the same script a second time before the
-    #         first instance exits
-    # ARGS:
-    #         $1 (optional) - Scope of script execution lock (system or user)
-    # OUTS:
-    #         exports $SCRIPT_LOCK - Path to the directory indicating we have the script lock
-    #         Exits script if lock cannot be acquired
-    # NOTE:
-    #         If the lock was acquired it's automatically released in _safeExit_()
-
+    # shellcheck disable=SC2120
     local _lockDir
     if [[ ${1:-} == 'system' ]]; then
         _lockDir="${TMPDIR:-/tmp/}$(basename "$0").lock"
@@ -32,20 +47,23 @@ _acquireScriptLock_() {
             printf "%s\n" "ERROR: Could not acquire script lock. If you trust the script isn't running, delete: ${_lockDir}"
             exit 1
         fi
-
     fi
 }
 
+# @description Creates a unique temporary directory for the script to use.
+#
+# @arg $1 string (optional) A prefix for the temporary directory's name. Defaults to the script's basename.
+#
+# @set TMP_DIR The absolute path to the newly created temporary directory.
+#
+# @note The temporary directory is automatically removed by `_safeExit_`.
+#
+# @example
+#   _makeTempDir_ "my-script-session"
+#   touch "${TMP_DIR}/my-file.tmp"
+#
+# @see _safeExit_()
 _makeTempDir_() {
-    # DESC:
-    #         Creates a temp directory to house temporary files
-    # ARGS:
-    #         $1 (Optional) - First characters/word of directory name
-    # OUTS:
-    #         Sets $TMP_DIR variable to the path of the temp directory
-    # USAGE:
-    #         _makeTempDir_ "$(basename "$0")"
-
     [ -d "${TMP_DIR:-}" ] && return 0
 
     if [ -n "${1:-}" ]; then
@@ -59,14 +77,24 @@ _makeTempDir_() {
     debug "\$TMP_DIR=${TMP_DIR}"
 }
 
+# @description Performs cleanup tasks and exits the script with a given code.
+#   This function is intended to be called by a `trap` at the start of a script.
+#
+# @arg $1 integer (optional) The exit code to use. Defaults to 0 (success).
+#
+# @note This function automatically removes the script lock (if set by `_acquireScriptLock_`)
+#   and the temporary directory (if set by `_makeTempDir_`).
+#
+# @example
+#   # Set trap at the beginning of a script
+#   trap '_safeExit_' EXIT INT TERM
+#
+#   # Exit with an error code
+#   _safeExit_ 1
+#
+# @see _acquireScriptLock_()
+# @see _makeTempDir_()
 _safeExit_() {
-    # DESC:
-    #       Cleanup and exit from a script
-    # ARGS:
-    #       $1 (optional) - Exit code (defaults to 0)
-    # OUTS:
-    #       None
-
     if [[ -d ${SCRIPT_LOCK:-} ]]; then
         if command rm -rf "${SCRIPT_LOCK}"; then
             debug "Removing script lock"
@@ -76,32 +104,34 @@ _safeExit_() {
     fi
 
     if [[ -n ${TMP_DIR:-} && -d ${TMP_DIR:-} ]]; then
-        if [[ ${1:-} == 1 && -n "$(ls "${TMP_DIR}")" ]]; then
-            command rm -r "${TMP_DIR}"
-        else
-            command rm -r "${TMP_DIR}"
-            debug "Removing temp directory"
-        fi
+        # The logic here seems to remove the temp dir regardless of the exit code.
+        # The original `if/else` was identical.
+        command rm -r "${TMP_DIR}"
+        debug "Removing temp directory"
     fi
 
     trap - INT TERM EXIT
     exit "${1:-0}"
 }
 
+# @description Prepends one or more directories to the session's `$PATH` environment variable.
+#
+# @option -x | -X Fail with an error code if any of the specified directories are not found.
+#
+# @arg $@ path (required) One or more directory paths to add to the `$PATH`.
+#
+# @set PATH The modified `$PATH` environment variable.
+# @exitcode 0 On success.
+# @exitcode 1 If `-x` is used and a directory does not exist.
+#
+# @example
+#   # Add local bin directories to the PATH
+#   _setPATH_ "/usr/local/bin" "${HOME}/.local/bin"
+#
+#   # Add a path and exit if it's not found
+#   _setPATH_ -x "/opt/my-app/bin" || exit 1
+#
 _setPATH_() {
-    # DESC:
-    #         Add directories to $PATH so script can find executables
-    # ARGS:
-    #         $@ - One or more paths
-    # OPTS:
-    #         -x - Fail if directories are not found
-    # OUTS:
-    #         0: Success
-    #         1: Failure
-    #         Adds items to $PATH
-    # USAGE:
-    #         _setPATH_ "/usr/local/bin" "${HOME}/bin" "$(npm bin)"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local opt
@@ -113,7 +143,8 @@ _setPATH_() {
         x | X) _failIfNotFound=true ;;
         *)
             {
-                error "Unrecognized option '${1}' passed to _backupFile_" "${LINENO}"
+                # Corrected error message to reference the right function
+                error "Unrecognized option '${1}' passed to _setPATH_" "${LINENO}"
                 return 1
             }
             ;;
@@ -129,7 +160,8 @@ _setPATH_() {
                 if PATH="${_newPath}:${PATH}"; then
                     debug "Added '${_newPath}' to PATH"
                 else
-                    debug "'${_newPath}' already in PATH"
+                    # This branch is unlikely to be hit
+                    debug "'${_newPath}' could not be added to PATH"
                 fi
             else
                 debug "_setPATH_: '${_newPath}' already exists in PATH"

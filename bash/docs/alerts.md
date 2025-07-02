@@ -10,6 +10,8 @@ color-coded output, and automatic detection of terminal capabilities.
 
 Global variables used by this library:
 - QUIET:    (true/false) Suppresses all screen output if true.
+- VERBOSE:  (true/false) Enables DEBUG level messages on screen if true.
+- LOGLEVEL: (string) Sets the logging verbosity (e.g., ERROR, INFO, DEBUG).
 - LOGFILE:  (path) The full path to the log file.
 - COLUMNS:  (integer) The width of the terminal.
 
@@ -34,41 +36,6 @@ Global variables used by this library:
 ## Shellcheck
 
 - Disable: SC2034, SC2154
-
-## Control Comments
-
-This section summarizes important annotations found throughout the codebase.
-
-### ⚠️ Attention
-
-- **[]** 
-
-### ❗ Bugs & Fixes
-
-- **[]** 
-- **[12]** ).
-- **[68]** , warning, error, fatal, info, input.
-- **[248]** message (purple). A wrapper for `_alert_`.
-- **[264]** ging and error reporting.
-- **[339]** ed widths and text wrapping.
-- **[422]** : important thing
-- **[424]** : we already have fixed that
-- **[425]** : should be fixed already
-
-### 📝 Todos
-
-- **[]** 
-- **[420]** : some entry
-- **[421]** : some list entry
-- **[423]** ?
-
-### ❓ Questions
-
-- **[]** 
-
-### ⭐ Highlights
-
-- **[]** 
 
 ### `_setColors_` {#setcolors}
 
@@ -95,6 +62,7 @@ _alert_ "success" "The operation was completed." "${LINENO}"
 
 #### Arguments
 
+- **\$1** (string): (required) The type of alert: success, header, notice, dryrun, debug, warning, error, fatal, info, input.
 - **\$2** (string): (required) The message to be printed.
 - **\$3** (integer): (optional) The line number, passed via `${LINENO}` to show where the alert was triggered.
 
@@ -218,6 +186,8 @@ Prints a header message (bold/white/underline). A wrapper for `_alert_`.
 
 ### `debug` {#debug}
 
+Prints a debug message (purple). A wrapper for `_alert_`.
+
 #### Arguments
 
 - **\$1** (string): (required) The message to print.
@@ -245,6 +215,8 @@ Prints a fatal error message and exits the script with code 1. A wrapper for `_a
 - [`_alert_`](#alert)
 
 ### `_printFuncStack_` {#printfuncstack}
+
+Prints the current function stack. Used for debugging and error reporting.
 
 #### Output on stdout
 
@@ -278,6 +250,8 @@ _centerOutput_ "--- Main Menu ---" "-"
 - [Credit](https://github.com/labbots/bash-utility)
 
 ### `_columns_` {#columns}
+
+Prints output in two columns with fixed widths and text wrapping.
 
 #### Example
 

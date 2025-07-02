@@ -1,16 +1,28 @@
-# Functions for validating common use-cases
+#=============================================================================
+# @file checks.bash
+# @brief A utility library for common validation and check functions.
+# @description
+#   This script provides a robust collection of functions to validate common data
+#   types and environmental states. It includes checks for commands, data formats
+#   (like IP addresses and emails), file system objects, and system states
+#   (like internet connectivity and root access).
+#=============================================================================
 
+# @description Checks if a command or binary exists in the system's PATH.
+#
+# @arg $1 string (required) Name of the command or binary to check for.
+#
+# @exitcode 0 If the command exists in the PATH.
+# @exitcode 1 If the command does not exist.
+#
+# @example
+#   if _commandExists_ "git"; then
+#     echo "Git is installed."
+#   else
+#     echo "Error: Git is not installed."
+#   fi
+#
 _commandExists_() {
-    # DESC:
-    #         Check if a binary exists in the search PATH
-    # ARGS:
-    #         $1 (Required) - Name of the binary to check for existence
-    # OUTS:
-    #         0 if true
-    #         1 if false
-    # USAGE:
-    #         (_commandExists_ ffmpeg ) && [SUCCESS] || [FAILURE]
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     if ! command -v "$1" >/dev/null 2>&1; then
@@ -20,15 +32,19 @@ _commandExists_() {
     return 0
 }
 
+# @description Tests if a function is defined in the current script scope.
+#
+# @arg $1 string (required) The name of the function to check.
+#
+# @exitcode 0 If the function is defined.
+# @exitcode 1 If the function is not defined.
+#
+# @example
+#   if _functionExists_ "_commandExists_"; then
+#     echo "Function exists."
+#   fi
+#
 _functionExists_() {
-    # DESC:
-    #         Tests if a function exists in the current scope
-    # ARGS:
-    #         $1 (Required) - Function name
-    # OUTS:
-    #         0 if function exists
-    #         1 if function does not exist
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _testFunction
@@ -41,17 +57,18 @@ _functionExists_() {
     fi
 }
 
+# @description Validates that a given input contains only alphabetic characters (a-z, A-Z).
+#
+# @arg $1 string (required) The input string to validate.
+#
+# @exitcode 0 If the input contains only alphabetic characters.
+# @exitcode 1 If the input contains non-alphabetic characters.
+#
+# @example
+#   _isAlpha_ "HelloWorld" # returns 0
+#   _isAlpha_ "Hello World" # returns 1
+#
 _isAlpha_() {
-    # DESC:
-    #         Validate that a given input is entirely alphabetic characters
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Input is only alphabetic characters
-    #         1 - Input contains non-alphabetic characters
-    # USAGE:
-    #         _isAlpha_ "${var}"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _re='^[[:alpha:]]+$'
     if [[ ${1} =~ ${_re} ]]; then
@@ -60,17 +77,18 @@ _isAlpha_() {
     return 1
 }
 
+# @description Validates that a given input contains only alpha-numeric characters (a-z, A-Z, 0-9).
+#
+# @arg $1 string (required) The input string to validate.
+#
+# @exitcode 0 If the input contains only alpha-numeric characters.
+# @exitcode 1 If the input contains other characters.
+#
+# @example
+#   _isAlphaNum_ "Test123" # returns 0
+#   _isAlphaNum_ "Test-123" # returns 1
+#
 _isAlphaNum_() {
-    # DESC:
-    #         Validate that a given input is entirely alpha-numeric characters
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Input is only alpha-numeric characters
-    #         1 - Input contains alpha-numeric characters
-    # USAGE:
-    #         _isAlphaNum_ "${var}"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _re='^[[:alnum:]]+$'
     if [[ ${1} =~ ${_re} ]]; then
@@ -79,17 +97,18 @@ _isAlphaNum_() {
     return 1
 }
 
+# @description Validates that a given input contains only alpha-numeric characters, underscores, or dashes.
+#
+# @arg $1 string (required) The input string to validate.
+#
+# @exitcode 0 If the input is valid.
+# @exitcode 1 If the input contains other characters.
+#
+# @example
+#   _isAlphaDash_ "my-variable_name-1" # returns 0
+#   _isAlphaDash_ "my-variable!" # returns 1
+#
 _isAlphaDash_() {
-    # DESC:
-    #         Validate that a given input contains only alpha-numeric characters, as well as dashes and underscores.
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Input is only alpha-numeric or dash or underscore characters
-    #         1 - Input is not only alpha-numeric or dash or underscore characters
-    # USAGE:
-    #         _isAlphaDash_ "${var}"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _re='^[[:alnum:]_-]+$'
     if [[ ${1} =~ ${_re} ]]; then
@@ -98,17 +117,19 @@ _isAlphaDash_() {
     return 1
 }
 
+# @description Validates that a string is a valid email address format.
+#
+# @arg $1 string (required) The email address to validate.
+#
+# @exitcode 0 If the string is a valid email format.
+# @exitcode 1 If the string is not a valid email format.
+#
+# @example
+#   if _isEmail_ "test@example.com"; then
+#     echo "Valid email."
+#   fi
+#
 _isEmail_() {
-    # DESC:
-    #         Validates that input is a valid email address
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Is valid email
-    #         1 - Is not valid email
-    # USAGE:
-    #         _isEmail_ "somename+test@gmail.com"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     #shellcheck disable=SC2064
@@ -120,17 +141,20 @@ _isEmail_() {
     [[ ${1} =~ ${_emailRegex} ]] && return 0 || return 1
 }
 
+# @description Determines if a given input is a fully qualified domain name (FQDN).
+#
+# @arg $1 string (required) The domain name to validate.
+#
+# @exitcode 0 If the string is a valid FQDN.
+# @exitcode 1 If the string is not a valid FQDN.
+#
+# @note This function requires GNU `grep` with PCRE support (`-P`). It may not work on all systems (e.g., default macOS).
+#
+# @example
+#   _isFQDN_ "google.com" # returns 0
+#   _isFQDN_ "localhost" # returns 1
+#
 _isFQDN_() {
-    # DESC:
-    #         Determines if a given input is a fully qualified domain name
-    # ARGS:
-    #         $1 (Required):	String to validate
-    # OUTS:
-    #         0:  Successfully validated as FQDN
-    #         1:  Failed to validate as FQDN
-    # USAGE:
-    #         _isFQDN_ "some.domain.com"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _input="${1}"
@@ -142,18 +166,17 @@ _isFQDN_() {
     fi
 }
 
+# @description Checks if an internet connection is available by attempting to contact google.com.
+#
+# @exitcode 0 If an internet connection to google.com is established.
+# @exitcode 1 If the connection fails.
+#
+# @example
+#   if _isInternetAvailable_; then
+#     echo "Internet is up."
+#   fi
+#
 _isInternetAvailable_() {
-    # DESC:
-    #         Check if internet connection is available
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 - Success: Internet connection is available
-    #         1 - Failure: Internet connection is not available
-    #         stdout:
-    # USAGE:
-    #         _isInternetAvailable_
-
     local _checkInternet
     if [[ -t 1 || -z ${TERM} ]]; then
         _checkInternet="$(sh -ic 'exec 3>&1 2>/dev/null; { curl --compressed -Is google.com 1>&3; kill 0; } | { sleep 10; kill 0; }' || :)"
@@ -165,17 +188,18 @@ _isInternetAvailable_() {
     fi
 }
 
+# @description Validates that a string is a structurally valid IPv4 address.
+#
+# @arg $1 string (required) The IPv4 address to validate.
+#
+# @exitcode 0 If the string is a valid IPv4 address.
+# @exitcode 1 If the string is not a valid IPv4 address.
+#
+# @example
+#   _isIPv4_ "192.168.1.1" # returns 0
+#   _isIPv4_ "999.0.0.1" # returns 1
+#
 _isIPv4_() {
-    # DESC:
-    #         Validates that input is a valid IP version 4 address
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Is valid IPv4 address
-    #         1 - Is not valid IPv4 address
-    # USAGE:
-    #         _isIPv4_ "192.168.1.1"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _ip="${1}"
     local IFS=.
@@ -190,56 +214,54 @@ _isIPv4_() {
     return 0
 }
 
+# @description Validates that a given path exists and is a regular file.
+#
+# @arg $1 path (required) The path to check.
+#
+# @exitcode 0 If the path exists and is a regular file.
+# @exitcode 1 Otherwise.
+#
+# @example
+#   if _isFile_ "/etc/hosts"; then
+#     echo "It's a file."
+#   fi
+#
 _isFile_() {
-    # DESC:
-    #         Validate that a given input points to a valid file
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Input is a valid file
-    #         1 - Input is not a valid file
-    # USAGE:
-    #         _varIsFile_ "${var}"
-    # NOTES:
-    #
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     [[ -f ${1} ]] && return 0 || return 1
 }
 
+# @description Validates that a given path exists and is a directory.
+#
+# @arg $1 path (required) The path to check.
+#
+# @exitcode 0 If the path exists and is a directory.
+# @exitcode 1 Otherwise.
+#
+# @example
+#   if _isDir_ "/etc/"; then
+#     echo "It's a directory."
+#   fi
+#
 _isDir_() {
-    # DESC:
-    #         Validate that a given input points to a valid directory
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Input is a directory
-    #         1 - Input is not a directory
-    # USAGE:
-    #         _varIsDir_ "${var}"
-    #         (_isDir_ "${var}") && printf "Is a directory" || printf "Not a directory"
-    # NOTES:
-    #
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     [[ -d ${1} ]] && return 0 || return 1
 }
 
+# @description Validates that a given input contains only numeric digits (0-9).
+#
+# @arg $1 string (required) The input string to validate.
+#
+# @exitcode 0 If the input contains only numeric digits.
+# @exitcode 1 If the input contains non-numeric characters.
+#
+# @example
+#   _isNum_ "12345" # returns 0
+#   _isNum_ "123a"  # returns 1
+#
 _isNum_() {
-    # DESC:
-    #         Validate that a given input is entirely numeric characters
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Input is only numeric characters
-    #         1 - Input contains numeric characters
-    # USAGE:
-    #         _isNum_ "${var}"
-    # NOTES:
-    #
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _re='^[[:digit:]]+$'
     if [[ ${1} =~ ${_re} ]]; then
@@ -248,31 +270,37 @@ _isNum_() {
     return 1
 }
 
+# @description Checks if the script is running in an interactive terminal.
+#
+# @exitcode 0 If the script is running in an interactive terminal.
+# @exitcode 1 If the script is not (e.g., piped, in a cron job).
+#
+# @example
+#   if _isTerminal_; then
+#     echo "We can use interactive prompts."
+#   fi
+#
 _isTerminal_() {
-    # DESC:
-    #         Check is script is run in an interactive terminal
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 - Script is run in a terminal
-    #         1 - Script is not run in a terminal
-    # USAGE:
-    #         _isTerminal_
-
     [[ -t 1 || -z ${TERM} ]] && return 0 || return 1
 }
 
+# @description Validates if superuser (root) privileges are available.
+#
+# @arg $1 any (optional) If set to any value, will not attempt to use `sudo`.
+#
+# @exitcode 0 If superuser privileges are available.
+# @exitcode 1 If superuser privileges could not be obtained.
+#
+# @see [ralish/bash-script-template](https://github.com/ralish/bash-script-template)
+#
+# @example
+#   if _rootAvailable_; then
+#     echo "Running tasks that require root..."
+#   else
+#     echo "Cannot run root tasks."
+#   fi
+#
 _rootAvailable_() {
-    # DESC:
-    #         Validate we have superuser access as root (via sudo if requested)
-    # ARGS:
-    #         $1 (optional): Set to any value to not attempt root access via sudo
-    # OUTS:
-    #         0 if true
-    #         1 if false
-    # CREDIT:
-    #         https://github.com/ralish/bash-script-template
-
     local _superuser
 
     if [[ ${EUID} -eq 0 ]]; then
@@ -299,63 +327,72 @@ _rootAvailable_() {
     fi
 }
 
+# @description Checks if a given variable is considered "true".
+#   True values are "true" (case-insensitive) or "0".
+#
+# @arg $1 string (required) The variable's value to check.
+#
+# @exitcode 0 If the value is considered true.
+# @exitcode 1 Otherwise.
+#
+# @example
+#   _varIsTrue_ "true" # returns 0
+#   _varIsTrue_ "0"    # returns 0
+#   _varIsTrue_ "yes"  # returns 1
+#
 _varIsTrue_() {
-    # DESC:
-    #         Check if a given variable is true
-    # ARGS:
-    #         $1 (required): Variable to check
-    # OUTS:
-    #         0 - Variable is true
-    #         1 - Variable is false
-    # USAGE
-    #         _varIsTrue_ "${var}"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     [[ ${1,,} == "true" || ${1} == 0 ]] && return 0 || return 1
 }
 
+# @description Checks if a given variable is considered "false".
+#   False values are "false" (case-insensitive) or "1".
+#
+# @arg $1 string (required) The variable's value to check.
+#
+# @exitcode 0 If the value is considered false.
+# @exitcode 1 Otherwise.
+#
+# @example
+#   _varIsFalse_ "false" # returns 0
+#   _varIsFalse_ "1"     # returns 0
+#   _varIsFalse_ "no"    # returns 1
+#
 _varIsFalse_() {
-    # DESC:
-    #         Check if a given variable is false
-    # ARGS:
-    #         $1 (required): Variable to check
-    # OUTS:
-    #         0 - Variable is false
-    #         1 - Variable is true
-    # USAGE
-    #         _varIsFalse_ "${var}"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     [[ ${1,,} == "false" || ${1} == 1 ]] && return 0 || return 1
 }
 
+# @description Checks if a given variable is empty or the literal string "null".
+#
+# @arg $1 string (required) The variable's value to check.
+#
+# @exitcode 0 If the variable is empty or "null".
+# @exitcode 1 Otherwise.
+#
+# @example
+#   _varIsEmpty_ ""       # returns 0
+#   _varIsEmpty_ "null"   # returns 0
+#   _varIsEmpty_ " "      # returns 1
+#
 _varIsEmpty_() {
-    # DESC:
-    #         Check if given variable is empty or null.
-    # ARGS:
-    #         $1 (required): Variable to check
-    # OUTS:
-    #         0 - Variable is empty or null
-    #         1 - Variable is not empty or null
-    # USAGE
-    #         _varIsEmpty_ "${var}"
-
     [[ -z ${1-} || ${1-} == "null" ]] && return 0 || return 1
 }
 
+# @description Validates that a string is a valid IPv6 address.
+#
+# @arg $1 string (required) The IPv6 address to validate.
+#
+# @exitcode 0 If the string is a valid IPv6 address.
+# @exitcode 1 If the string is not a valid IPv6 address.
+#
+# @example
+#   _isIPv6_ "2001:db8:85a3:8d3:1319:8a2e:370:7348" # returns 0
+#   _isIPv6_ "not-an-ip" # returns 1
+#
 _isIPv6_() {
-    # DESC:
-    #         Validates that input is a valid IP version 46address
-    # ARGS:
-    #         $1 (required): Input to check
-    # OUTS:
-    #         0 - Is valid IPv6 address
-    #         1 - Is not valid IPv6 address
-    # USAGE:
-    #         _isIPv6_ "2001:db8:85a3:8d3:1319:8a2e:370:7348"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _ip="${1}"

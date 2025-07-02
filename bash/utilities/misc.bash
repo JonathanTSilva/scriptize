@@ -1,35 +1,38 @@
-# Functions which provide base functionality for other scripts
+#=============================================================================
+# @file misc.bash
+# @brief A library of miscellaneous and foundational utility functions.
+# @description
+#   This script provides a collection of miscellaneous helper functions that serve
+#   as a foundation for other scripts. It includes OS detection, process management
+#   (spinners, progress bars), user interaction, and safe command execution wrappers.
+#=============================================================================
 
+# @description Enables terminal window size checking.
+#   On supported systems, this causes the `$LINES` and `$COLUMNS` variables to be
+#   updated automatically when the terminal window is resized.
+#
+# @note This sets a `trap` on the `SIGWINCH` signal.
+#
+# @example
+#   # Call this at the beginning of an interactive script.
+#   _checkTerminalSize_
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _checkTerminalSize_() {
-    # DESC:
-    #         Checks the size of the terminal window.  Updates LINES/COLUMNS if necessary
-    # ARGS:
-    #         NONE
-    # OUTS:
-    #         NONE
-    # USAGE:
-    #         _updateTerminalSize_
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     shopt -s checkwinsize && (: && :)
     trap 'shopt -s checkwinsize; (:;:)' SIGWINCH
 }
-
+# @description Identifies the current operating system.
+#
+# @stdout The name of the OS in lowercase: 'mac', 'linux', or 'windows'.
+# @exitcode 1 If the OS could not be determined.
+#
+# @example
+#   os_name=$(_detectOS_)
+#   echo "Running on: ${os_name}"
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _detectOS_() {
-    # DESC:
-    #         Identify the OS the script is run on
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 - Success
-    #         1 - Failed to detect OS
-    #         stdout: One of 'mac', 'linux', 'windows'
-    # USAGE:
-    #         _detectOS_
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     local _uname
     local _os
     if _uname=$(command -v uname); then
@@ -52,23 +55,21 @@ _detectOS_() {
         return 1
     fi
     printf "%s" "${_os}"
-
 }
 
+# @description Detects the specific Linux distribution.
+#
+# @stdout The name of the Linux distribution in lowercase (e.g., 'ubuntu', 'centos', 'arch').
+# @exitcode 1 If not running on Linux or if the distribution cannot be determined.
+#
+# @example
+#   if [[ $(_detectOS_) == "linux" ]]; then
+#     distro=$(_detectLinuxDistro_)
+#     echo "Linux distro is: ${distro}"
+#   fi
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _detectLinuxDistro_() {
-    # DESC:
-    #         Detects the Linux distribution of the host the script is run on
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 - If Linux distro is successfully detected
-    #         1 - If unable to detect OS distro or not on Linux
-    #         stdout: Prints name of Linux distro in lower case (ex: 'raspbian' or 'debian')
-    # USAGE:
-    #         _detectLinuxDistro_
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     local _distro
     if [[ -f /etc/os-release ]]; then
         # shellcheck disable=SC1091,SC2154
@@ -97,20 +98,22 @@ _detectLinuxDistro_() {
     printf "%s" "${_distro}" | tr '[:upper:]' '[:lower:]'
 }
 
+# @description Detects the product version of macOS.
+#
+# @stdout The version number of macOS (e.g., '12.5.1').
+# @exitcode 1 If not running on macOS.
+#
+# @note This function requires `_detectOS_` to be available.
+#
+# @example
+#   if [[ $(_detectOS_) == "mac" ]]; then
+#     mac_version=$(_detectMacOSVersion_)
+#     echo "macOS version: ${mac_version}"
+#   fi
+#
+# @see _detectOS_()
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _detectMacOSVersion_() {
-    # DESC:
-    #         Detects the host's version of MacOS
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 - Success
-    #         1 - Can not find macOS version number or not on a mac
-    #         stdout: Prints the version number of macOS (ex: 11.6.1)
-    # USAGE:
-    #         _detectMacOSVersion_
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     declare -f _detectOS_ &>/dev/null || fatal "${FUNCNAME[0]} needs function _detectOS_"
 
     if [[ "$(_detectOS_)" == "mac" ]]; then
@@ -122,72 +125,31 @@ _detectMacOSVersion_() {
     fi
 }
 
-_detectLinuxDistro_() {
-    # DESC:
-    #         Detects the Linux distribution of the host the script is run on
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 - If Linux distro is successfully detected
-    #         1 - If unable to detect OS distro or not on Linux
-    #         stdout: Prints name of Linux distro in lower case (ex: 'raspbian' or 'debian')
-    # USAGE:
-    #         _detectLinuxDistro_
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
-    local _distro
-    if [[ -f /etc/os-release ]]; then
-        # shellcheck disable=SC1091
-        . "/etc/os-release"
-        _distro="${NAME}"
-    elif type lsb_release >/dev/null 2>&1; then
-        # linuxbase.org
-        _distro=$(lsb_release -si)
-    elif [[ -f /etc/lsb-release ]]; then
-        # For some versions of Debian/Ubuntu without lsb_release command
-        # shellcheck disable=SC1091
-        . /etc/lsb-release
-        _distro="${DISTRIB_ID}"
-    elif [[ -f /etc/debian_version ]]; then
-        # Older Debian/Ubuntu/etc.
-        _distro="debian"
-    elif [[ -f /etc/SuSe-release ]]; then
-        # Older SuSE/etc.
-        _distro="suse"
-    elif [[ -f /etc/redhat-release ]]; then
-        # Older Red Hat, CentOS, etc.
-        _distro="redhat"
-    else
-        return 1
-    fi
-    printf "%s" "${_distro}" | tr '[:upper:]' '[:lower:]'
-}
-
+# @description A safe command execution wrapper.
+#   It respects global flags like `$DRYRUN`, `$VERBOSE`, and `$QUIET`, and provides
+#   options for customizing output and error handling.
+#
+# @option -v | -V Force verbose output for this command, printing the command's native stdout/stderr.
+# @option -n | -N Use 'notice' level alerting for the status message instead of 'info'.
+# @option -p | -P Pass failures. If the command fails, return 0 instead of 1. Bypasses `set -e`.
+# @option -e | -E Echo result. Use `printf` for the status message instead of an alert function.
+# @option -s | -S On success, use 'success' level alerting for the status message.
+# @option -q | -Q Quiet mode. Do not print any status message.
+#
+# @arg $1 string (required) The command to be executed. Must be properly quoted.
+# @arg $2 string (optional) A custom message to display instead of the command itself.
+#
+# @stdout The native output of the command if in verbose mode, or the status message.
+# @exitcode 0 On success, or if `-p` is used on failure.
+# @exitcode 1 On failure.
+#
+# @note If `$DRYRUN` is true, it prints the command that would have been run and does not execute anything.
+#
+# @example
+#   _execute_ "mkdir -p '/tmp/my-new-dir'" "Created temporary directory"
+#   _execute_ -s "rm -f '/tmp/some-file'" "Successfully removed file"
+#
 _execute_() {
-    # DESC:
-    #         Executes commands while respecting global DRYRUN, VERBOSE, LOGGING, and QUIET flags
-    # ARGS:
-    #         $1 (Required) - The command to be executed.  Quotation marks MUST be escaped.
-    #         $2 (Optional) - String to display after command is executed
-    # OPTS:
-    #         -v    Always print output from the execute function to STDOUT
-    #         -n    Use NOTICE level alerting (default is INFO)
-    #         -p    Pass a failed command with 'return 0'.  This effectively bypasses set -e.
-    #         -e    Bypass _alert_ functions and use 'printf RESULT'
-    #         -s    Use '_alert_ success' for successful output. (default is 'info')
-    #         -q    Do not print output (QUIET mode)
-    # OUTS:
-    #         stdout: Configurable output
-    # USE :
-    #         _execute_ "cp -R \"~/dir/somefile.txt\" \"someNewFile.txt\"" "Optional message"
-    #         _execute_ -sv "mkdir \"some/dir\""
-    # NOTE:
-    #         If $DRYRUN=true, no commands are executed and the command that would have been executed
-    #         is printed to STDOUT using dryrun level alerting
-    #         If $VERBOSE=true, the command's native output is printed to stdout. This can be forced
-    #         with '_execute_ -v'
-
     local _localVerbose=false
     local _passFailures=false
     local _echoResult=false
@@ -288,17 +250,17 @@ _execute_() {
     return 0
 }
 
+# @description Locates the real, absolute directory of the script being run.
+#   It correctly resolves symlinks.
+#
+# @stdout Prints the absolute path to the script's directory.
+#
+# @example
+#   # If this is in a script at /usr/local/bin/myscript
+#   baseDir="$(_findBaseDir_)"
+#   # baseDir is now "/usr/local/bin"
+#
 _findBaseDir_() {
-    # DESC:
-    #         Locates the real directory of the script being run. Similar to GNU readlink -n
-    # ARGS:
-    #         None
-    # OUTS:
-    #         stdout: prints result
-    # USAGE:
-    #         baseDir="$(_findBaseDir_)"
-    #         cp "$(_findBaseDir_ "somefile.txt")" "other_file.txt"
-
     local _source
     local _dir
 
@@ -317,20 +279,15 @@ _findBaseDir_() {
     printf "%s\n" "$(cd -P "$(dirname "${_source}")" && pwd)"
 }
 
+# @description Generates a random UUID (Universally Unique Identifier).
+#
+# @stdout A version 4 UUID string (e.g., `f3b4a2d1-e9c8-4b7a-8f6e-1d5c3b2a1f0e`).
+#
+# @example
+#   request_id=$(_generateUUID_)
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _generateUUID_() {
-    # DESC:
-    #         Generates a UUID
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 - Success
-    #         1 - Failure
-    #         stdout: UUID
-    # USAGE:
-    #         _generateUUID_
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     local _c
     local n
     local _b
@@ -356,21 +313,26 @@ _generateUUID_() {
     printf '\n'
 }
 
+# @description Renders a simple progress bar for loops with a known number of iterations.
+#
+# @arg $1 integer (required) The total number of items in the loop.
+# @arg $2 string (optional) The title to display next to the progress bar.
+#
+# @stdout A progress bar that updates on the same line.
+#
+# @note This function uses and unsets a global variable `PROGRESS_BAR_PROGRESS`.
+# @note For loops with an unknown number of iterations, use `_spinner_` instead.
+#
+# @example
+#   total_files=100
+#   for i in $(seq 1 ${total_files}); do
+#     _progressBar_ "${total_files}" "Processing files"
+#     sleep 0.05
+#   done
+#   echo " Done."
+#
+# @see _spinner_()
 _progressBar_() {
-    # DESC:
-    #         Prints a progress bar within a for/while loop. For this to work correctly you
-    #         MUST know the exact number of iterations. If you don't know the exact number use _spinner_
-    # ARGS:
-    #         $1 (Required) - The total number of items counted
-    #         $2 (Optional) - The optional title of the progress bar
-    # OUTS:
-    #         stdout: progress bar
-    # USAGE:
-    #         for i in $(seq 0 100); do
-    #             sleep 0.1
-    #             _makeProgressBar_ "100" "Counting numbers"
-    #         done
-
     [[ $# == 0 ]] && return   # Do nothing if no arguments are passed
     (${QUIET:-}) && return    # Do nothing in quiet mode
     (${VERBOSE:-}) && return  # Do nothing if verbose mode is enabled
@@ -426,21 +388,22 @@ _progressBar_() {
 
 }
 
+# @description Renders a simple text-based spinner for long-running operations.
+#
+# @arg $1 string (optional) The message to display next to the spinner.
+#
+# @stdout A spinner that updates on the same line.
+#
+# @note The spinner must be cleared by calling `_endspin_` after the loop.
+# @note This function uses and unsets a global variable `SPIN_NUM`.
+#
+# @example
+#   _spinner_ "Waiting for connection"
+#   sleep 5
+#   _endspin_ "Connected."
+#
+# @see _endspin_()
 _spinner_() {
-    # DESC:
-    #         Creates a spinner within a for/while loop.
-    #         Don't forget to add _endspin_ at the end of the loop
-    # ARGS:
-    #         $1 (Optional) - Text accompanying the spinner
-    # OUTS:
-    #         stdout: progress bar
-    # USAGE:
-    #         for i in $(seq 0 100); do
-    #             sleep 0.1
-    #             _spinner_ "Counting numbers"
-    #         done
-    #         _endspin_
-
     (${QUIET:-}) && return   # Do nothing in quiet mode
     (${VERBOSE:-}) && return # Do nothing in verbose mode
     [ ! -t 1 ] && return     # Do nothing if the output is not a terminal
@@ -494,16 +457,14 @@ _spinner_() {
     fi
 }
 
+# @description Clears the line used by `_spinner_` and restores the cursor.
+#   Should be called after a loop that uses `_spinner_`.
+#
+# @example
+#   # See example for _spinner_()
+#
+# @see _spinner_()
 _endspin_() {
-    # DESC:
-    #         Clears the line that showed the spinner and replaces the cursor. To be run after _spinner_
-    # ARGS:
-    #         None
-    # OUTS:
-    #         stdout:  Removes previous line
-    # USAGE:
-    #         _endspin_
-
     # Clear the spinner
     printf "\r\033[0K"
 
@@ -513,17 +474,18 @@ _endspin_() {
     unset SPIN_NUM
 }
 
+# @description Runs a command with root privileges.
+#
+# @arg $@ any (required) The command and its arguments to execute as root.
+#
+# @note This function will use `sudo` if the current user is not root.
+#
+# @see [ralish/bash-script-template](https://github.com/ralish/bash-script-template)
+#
+# @example
+#   _runAsRoot_ "apt-get" "update"
+#
 _runAsRoot_() {
-    # DESC:
-    #         Run the requested command as root (via sudo if requested)
-    # ARGS:
-    #         $1 (optional): Set to zero to not attempt execution via sudo
-    #         $@ (required): Passed through for execution as root user
-    # OUTS:
-    #         Runs the requested command as root
-    # CREDIT:
-    #         https://github.com/ralish/bash-script-template
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _skip_sudo=false
@@ -542,21 +504,23 @@ _runAsRoot_() {
     fi
 }
 
+# @description Prompts the user for a yes/no confirmation.
+#
+# @arg $1 string (required) The question to ask the user.
+#
+# @exitcode 0 If the user answers "yes" (y/Y).
+# @exitcode 1 If the user answers "no" (n/N).
+#
+# @note If the global variable `$FORCE` is true, this function will automatically return 0 without prompting.
+#
+# @example
+#   if _seekConfirmation_ "Are you sure you want to delete all files?"; then
+#     echo "Deleting files..."
+#   else
+#     echo "Operation cancelled."
+#   fi
+#
 _seekConfirmation_() {
-    # DESC:
-    #         Seek user input for yes/no question
-    # ARGS:
-    #         $1 (Required) - Question being asked
-    # OUTS:
-    #         0 if answer is "yes"
-    #         1 if answer is "no"
-    # USAGE:
-    #         _seekConfirmation_ "Do something?" && printf "okay" || printf "not okay"
-    #         OR
-    #         if _seekConfirmation_ "Answer this question"; then
-    #           something
-    #         fi
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _yesNo

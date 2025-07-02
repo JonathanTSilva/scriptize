@@ -1,27 +1,37 @@
-# Functions for manipulating files
+#=============================================================================
+# @file files.bash
+# @brief A utility library for common file and filesystem operations.
+# @description
+#   This script provides a collection of functions for file manipulation,
+#   including creating backups, encrypting/decrypting, extracting archives,
+#   parsing file paths, and converting between data formats like YAML and JSON.
+#=============================================================================
 
+# @description Creates a backup of a file or directory.
+#   Can create a `.bak` file in place or copy/move the source to a backup directory.
+#
+# @option -d | -D Use a backup directory instead of creating a `.bak` file in the same location.
+# @option -m | -M Move the source file (rename) instead of copying it. This removes the original.
+#
+# @arg $1 path (required) The source file or directory to back up.
+# @arg $2 path (optional) The destination directory path to use with the `-d` flag. Defaults to `./backup`.
+#
+# @exitcode 0 On success.
+# @exitcode 1 On error (e.g., source not found, unrecognized option).
+#
+# @note This function requires the `_execute_` and `_createUniqueFilename_` functions.
+# @note Dotfiles (e.g., `.bashrc`) will have the leading dot removed in their backup filename (e.g., `bashrc`).
+#
+# @example
+#   # Create a backup of file.txt as file.txt.bak
+#   _backupFile_ "file.txt"
+#
+#   # Move file.txt to a backup directory
+#   _backupFile_ -d -m "file.txt" "safe/location"
+#
+# @see _execute_()
+# @see _createUniqueFilename_()
 _backupFile_() {
-    # DESC:
-    #         Creates a backup of a specified file with .bak extension or optionally to a
-    #         specified directory
-    # ARGS:
-    #         $1 (Required)   - Source file
-    #         $2 (Optional)   - Destination dir name used only with -d flag (defaults to ./backup)
-    # OPTS:
-    #         -d  - Move files to a backup directory
-    #         -m  - Replaces copy (default) with move, effectively removing the original file
-    # REQUIRES:
-    #         _execute_
-    #         _createUniqueFilename_
-    # OUTS:
-    #         0 - Success
-    #         1 - Error
-    #         filesystem: Backup of files
-    # USAGE:
-    #         _backupFile_ "sourcefile.txt" "some/backup/dir"
-    # NOTE:
-    #         Dotfiles have their leading '.' removed in their backup
-
     local opt
     local OPTIND=1
     local _useDirectory=false
@@ -78,24 +88,25 @@ _backupFile_() {
     fi
 }
 
+# @description Generates a unique filename by appending an incrementing number if the file already exists.
+#
+# @option -i | -I Places the unique number *before* the file extension instead of at the very end.
+#
+# @arg $1 path (required) The desired filename.
+# @arg $2 string (optional) The separator character to use before the number. Defaults to `.`.
+#
+# @stdout The new, unique filename path.
+# @exitcode 0 On success.
+# @exitcode 1 On error.
+#
+# @example
+#   # Assuming "file.txt" exists:
+#   _createUniqueFilename_ "/data/file.txt" # -> /data/file.txt.1
+#
+#   # Assuming "file.txt" and "file-1.txt" exist:
+#   _createUniqueFilename_ -i "/data/file.txt" "-" # -> /data/file-2.txt
+#
 _createUniqueFilename_() {
-    # DESC:
-    #         Ensure a file to be created has a unique filename to avoid overwriting other
-    #         filenames by incrementing a number at the end of the filename
-    # ARGS:
-    #         $1 (Required) - Name of file to be created
-    #         $2 (Optional) - Separation character (Defaults to a period '.')
-    # OUTS:
-    #         stdout: Unique name of file
-    #         0 if successful
-    #         1 if not successful
-    # OPTS:
-    #         -i:   Places the unique integer before the file extension
-    # USAGE:
-    #         _createUniqueFilename_ "/some/dir/file.txt" --> /some/dir/file.txt.1
-    #         _createUniqueFilename_ -i"/some/dir/file.txt" "-" --> /some/dir/file-1.txt
-    #         printf "%s" "line" > "$(_createUniqueFilename_ "/some/dir/file.txt")"
-
     [[ $# -lt 1 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local opt
@@ -184,23 +195,22 @@ _createUniqueFilename_() {
     return 0
 }
 
+# @description Decrypts a file using OpenSSL (aes-256-cbc).
+#
+# @arg $1 path (required) The encrypted file to decrypt (e.g., `file.enc`).
+# @arg $2 path (optional) The name for the decrypted output file. Defaults to the input filename without `.enc`.
+#
+# @exitcode 0 On success.
+# @exitcode 1 If the source file does not exist.
+#
+# @note This function requires `openssl` to be installed and the `_execute_` function to be available.
+# @note If the global variable `$PASS` is set, it will be used as the decryption key. Otherwise, `openssl` will prompt for it.
+#
+# @example
+#   _decryptFile_ "secret.txt.enc" "secret.txt"
+#
+# @see _execute_()
 _decryptFile_() {
-    # DESC:
-    #         Decrypts a file with openSSL
-    # ARGS:
-    #         $1 (Required) - File to be decrypted
-    #         $2 (Optional) - Name of output file (defaults to $1.decrypt)
-    # OUTS:
-    #         0 - Success
-    #         1 - Error
-    # REQUIRES:
-    #         _execute_
-    # USAGE:
-    #         _decryptFile_ "somefile.txt.enc" "decrypted_somefile.txt"
-    # NOTE:
-    #         If a global variable '$PASS' has a value, we will use that as the password to decrypt
-    #         the file. Otherwise we will ask
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _fileToDecrypt="${1:?_decryptFile_ needs a file}"
@@ -222,22 +232,19 @@ _decryptFile_() {
     fi
 }
 
+# @description Encrypts a file using OpenSSL (aes-256-cbc).
+#
+# @arg $1 path (required) The file to encrypt.
+# @arg $2 path (optional) The name for the encrypted output file. Defaults to the input filename with `.enc` appended.
+#
+# @note This function requires `openssl` to be installed and the `_execute_` function to be available.
+# @note If the global variable `$PASS` is set, it will be used as the encryption key. Otherwise, `openssl` will prompt for it.
+#
+# @example
+#   _encryptFile_ "important.docx"
+#
+# @see _execute_()
 _encryptFile_() {
-    # DESC:
-    #         Encrypts a file using openSSL
-    # ARGS:
-    #         $1 (Required) - Input file
-    #         $2 (Optional) - Name of output file (defaults to $1.enc)
-    # OUTS:
-    #         None
-    # REQUIRE:
-    #         _execute_
-    # USAGE:
-    #         _encryptFile_ "somefile.txt" "encrypted_somefile.txt"
-    # NOTE:
-    #         If a variable '$PASS' has a value, we will use that as the password
-    #         for the encrypted file. Otherwise ask.
-
     local _fileToEncrypt="${1:?_encodeFile_ needs a file}"
     local _defaultName="${_fileToEncrypt%.decrypt}"
     local _encryptedFile="${2:-${_defaultName}.enc}"
@@ -259,16 +266,19 @@ _encryptFile_() {
     fi
 }
 
+# @description Extracts a wide variety of archive types using available system commands.
+#   Supported formats include: .tar.bz2, .tbz, .tar.gz, .tgz, .tar.xz, .tar, .bz2, .gz, .xz, .zip, .rar, .7z, .deb, and more.
+#
+# @arg $1 path (required) The archive file to extract.
+# @arg $2 string (optional) Pass 'v' to enable verbose output for commands that support it.
+#
+# @exitcode 0 On success.
+# @exitcode 1 If the file does not exist or the archive type is unsupported.
+#
+# @example
+#   _extractArchive_ "my_project.tar.gz"
+#
 _extractArchive_() {
-    # DESC:
-    #         Extract a compressed file
-    # ARGS:
-    #         $1 (Required) - Input file
-    #         $2 (optional) - Input 'v' to show verbose output
-    # OUTS:
-    #         0 - Success
-    #         1 - Error
-
     local _vv
 
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
@@ -314,34 +324,30 @@ _extractArchive_() {
     fi
 }
 
+# @description Gets the filename (including extension) from a full path.
+#
+# @arg $1 path (required) The input path string.
+#
+# @stdout The filename with its extension.
+#
+# @example
+#   _fileName_ "/var/log/syslog.log" # -> syslog.log
+#
 _fileName_() {
-    # DESC:
-    #					Get only the filename from a string
-    # ARGS:
-    #					$1 (Required) - Input string
-    # OUTS:
-    #					0 - Success
-    #					1 - Failure
-    #					stdout: Filename with extension
-    # USAGE:
-    #					_fileName_ "some/path/to/file.txt" --> "file.txt"
-    #					_fileName_ "some/path/to/file" --> "file"
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     printf "%s\n" "${1##*/}"
 }
 
+# @description Gets the basename of a file (filename without extension) from a path.
+#
+# @arg $1 path (required) The input path string.
+#
+# @stdout The filename without its path or extension.
+#
+# @example
+#   _fileBasename_ "some/path/to/archive.tar.gz" # -> archive.tar
+#
 _fileBasename_() {
-    # DESC:
-    #					Gets the basename of a file from a file name
-    # ARGS:
-    #					$1 (Required) - Input string path
-    # OUTS:
-    #					0 - Success
-    #					1 - Failure
-    #					stdout: Filename basename (no extension or path)
-    # USAGE:
-    #					_fileBasename_ "some/path/to/file.txt" --> "file"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _file
@@ -352,18 +358,19 @@ _fileBasename_() {
     printf "%s" "${_basename}"
 }
 
+# @description Gets the extension from a filename.
+#   It can detect common double extensions like `.tar.gz`.
+#
+# @arg $1 path (required) The input path string.
+#
+# @stdout The file extension, without the leading dot.
+# @exitcode 1 If no extension is found.
+#
+# @example
+#   _fileExtension_ "archive.tar.gz" # -> tar.gz
+#   _fileExtension_ "document.pdf"   # -> pdf
+#
 _fileExtension_() {
-    # DESC:
-    #					Gets an extension from a file name. Finds a few common double extensions (tar.gz, tar.bz2, log.1)
-    # ARGS:
-    #					$1 (Required) - Input string path
-    # OUTS:
-    #					0 - Success
-    #					1 - If no extension found in filename
-    #					stdout: extension (without the .)
-    # USAGE:
-    #					_fileExtension_ "some/path/to/file.txt" --> "txt"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _file
@@ -397,21 +404,18 @@ _fileExtension_() {
 
 }
 
+# @description Gets the directory name from a full file path.
+#   If the path exists, it returns the absolute (real) path to the directory.
+#
+# @arg $1 path (required) The input path string.
+#
+# @stdout The directory path.
+#
+# @example
+#   _filePath_ "/var/log/syslog.log" # -> /var/log
+#
+# @see [labbots/bash-utility](https://github.com/labbots/bash-utility/)
 _filePath_() {
-    # DESC:
-    #		  Finds the directory name from a file path. If it exists on filesystem, print
-    #         absolute path.  If a string, remove the filename and return the path
-    # ARGS:
-    #					$1 (Required) - Input string path
-    # OUTS:
-    #					0 - Success
-    #					1 - Failure
-    #					stdout: Directory path
-    # USAGE:
-    #					_fileDir_ "some/path/to/file.txt" --> "some/path/to"
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility/
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _tmp=${1}
@@ -428,18 +432,20 @@ _filePath_() {
     printf '%s' "${_tmp:-/}"
 }
 
+# @description Searches a file for a given grep pattern.
+#
+# @arg $1 path (required) The file to search within.
+# @arg $2 string (required) The grep pattern to search for.
+#
+# @exitcode 0 If the pattern is found in the file.
+# @exitcode 1 If the pattern is not found.
+#
+# @example
+#   if _fileContains_ "/etc/hosts" "localhost"; then
+#     echo "localhost is defined in hosts file."
+#   fi
+#
 _fileContains_() {
-    # DESC:
-    #					Searches a file for a given pattern using default grep patterns
-    # ARGS:
-    #					$1 (Required) - Input file
-    #					$2 (Required) - Pattern to search for
-    # OUTS:
-    #					0 - Pattern found in file
-    #					1 - Pattern not found in file
-    # USAGE:
-    #					_fileContains_ "./file.sh" "^[:alpha:]*"
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _file="$1"
@@ -447,37 +453,38 @@ _fileContains_() {
     grep -q "${_text}" "${_file}"
 }
 
+# @description Converts a JSON file to YAML format.
+#
+# @arg $1 path (required) The input JSON file.
+#
+# @stdout The converted content in YAML format.
+#
+# @note This function requires `python` and the `pyyaml` library to be installed. (`pip install pyyaml`)
+#
+# @example
+#   _json2yaml_ "data.json" > "data.yml"
+#
 _json2yaml_() {
-    # DESC:
-    #         Convert JSON to YAML
-    # ARGS:
-    #         $1 (Required) - JSON file
-    # OUTS:
-    #         stdout: YAML from the JSON input
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     python -c 'import sys, yaml, json; yaml.safe_dump(json.load(sys.stdin), sys.stdout, default_flow_style=False)' <"${1}"
 }
 
+# @description Finds files in a directory using either glob or regex patterns.
+#
+# @arg $1 string (required) The search type: 'glob' (or 'g') or 'regex' (or 'r').
+# @arg $2 string (required) The search pattern (case-insensitive). Must be quoted.
+# @arg $3 path (optional) The directory to search in. Defaults to the current directory (`.`).
+#
+# @stdout A list of matching absolute file paths, one per line.
+# @exitcode 0 If files are found.
+# @exitcode 1 If no files are found.
+#
+# @example
+#   _listFiles_ glob "*.log" "/var/log"
+#   mapfile -t txt_files < <(_listFiles_ g "*.txt")
+#
 _listFiles_() {
-    # DESC:
-    #         Find files in a directory.  Use either glob or regex
-    # ARGS:
-    #         $1 (Required) - 'g|glob' or 'r|regex'
-    #         $2 (Required) - pattern to match
-    #         $3 (Optional) - directory (defaults to .)
-    # OUTS:
-    #         0: if files found
-    #         1: if no files found
-    #         stdout: List of files
-    # NOTE:
-    #         Searches are NOT case sensitive and MUST be quoted
-    # USAGE:
-    #         _listFiles_ glob "*.txt" "some/backup/dir"
-    #         _listFiles_ regex ".*\.[sha256|md5|txt]" "some/backup/dir"
-    #         readarray -t array < <(_listFiles_ g "*.txt")
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _searchType="${1}"
@@ -510,25 +517,22 @@ _listFiles_() {
     fi
 }
 
+# @description Creates a symlink, safely backing up any existing file or symlink at the destination.
+#
+# @option -c | -C Quiet mode. Only report on new or changed symlinks.
+# @option -n | -N No backup. Overwrites the destination without creating a backup.
+# @option -s | -S Use `sudo` when removing the destination file/symlink.
+#
+# @arg $1 path (required) The source file/directory for the symlink.
+# @arg $2 path (required) The destination path for the new symlink.
+#
+# @exitcode 0 On success.
+# @exitcode 1 On error.
+#
+# @example
+#   _makeSymlink_ "~/dotfiles/.bashrc" "~/.bashrc"
+#
 _makeSymlink_() {
-    # DESC:
-    #         Creates a symlink and backs up a file which may be overwritten by the new symlink. If the
-    #         exact same symlink already exists, nothing is done.
-    #         Default behavior will create a backup of a file to be overwritten
-    # ARGS:
-    #         $1 (Required) - Source file
-    #         $2 (Required) - Destination
-    # OPTS:
-    #         -c  - Only report on new/changed symlinks.  Quiet when nothing done.
-    #         -n  - Do not create a backup if target already exists
-    #         -s  - Use sudo when removing old files to make way for new symlinks
-    # OUTS:
-    #         0 - Success
-    #         1 - Error
-    #         Filesystem: Create's symlink if required
-    # USAGE:
-    #         _makeSymlink_ "/dir/someExistingFile" "/dir/aNewSymLink" "/dir/backup/location"
-
     local opt
     local OPTIND=1
     local _backupOriginal=true
@@ -628,23 +632,27 @@ _makeSymlink_() {
     return 0
 }
 
+# @description Parses a YAML file and converts its structure into Bash variable assignments.
+#
+# @arg $1 path (required) The source YAML file.
+# @arg $2 string (required) A prefix to add to all generated variable names to prevent collisions.
+#
+# @stdout A series of Bash variable and array assignments that can be sourced.
+#
+# @example
+#   # Given sample.yml:
+#   # user: admin
+#   # hosts:
+#   #   - web1
+#   #   - web2
+#
+#   eval "$(_parseYAML_ "sample.yml" "CONF_")"
+#   echo $CONF_user # -> admin
+#   echo ${CONF_hosts[0]} # -> web1
+#
+# @see [DinoChiesa's Gist](https://gist.github.com/DinoChiesa/3e3c3866b51290f31243)
+# @see [epiloque's Gist](https://gist.github.com/epiloque/8cf512c6d64641bde388)
 _parseYAML_() {
-    # DESC:
-    #         Convert a YAML file into BASH variables for use in a shell script
-    # ARGS:
-    #         $1 (Required) - Source YAML file
-    #         $2 (Required) - Prefix for the variables to avoid namespace collisions
-    # OUTS:
-    #         Prints variables and arrays derived from YAML File
-    # USAGE:
-    #         To source into a script
-    #         _parseYAML_ "sample.yml" "CONF_" > tmp/variables.txt
-    #         source "tmp/variables.txt"
-    #
-    # NOTE:
-    #         https://gist.github.com/DinoChiesa/3e3c3866b51290f31243
-    #         https://gist.github.com/epiloque/8cf512c6d64641bde388
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _yamlFile="${1}"
@@ -671,24 +679,24 @@ _parseYAML_() {
   }' | sed 's/__=/+=/g' | sed 's/_=/+=/g' | sed 's/[[:space:]]*#.*"/"/g' | sed 's/=("--")//g'
 }
 
+# @description Prints the block of text from a file that is between two regex patterns.
+#
+# @option -i | -I Use case-insensitive regex matching.
+# @option -r | -R Remove the first and last lines (the lines matching the patterns) from the output.
+# @option -g | -G Greedy mode. If multiple start/end blocks exist, match from the first start to the last end.
+#
+# @arg $1 string (required) The starting regex pattern.
+# @arg $2 string (required) The ending regex pattern.
+# @arg $3 path (required) The input file path.
+#
+# @stdout The block of text found between the patterns.
+# @exitcode 0 On success.
+# @exitcode 1 If no matching block is found.
+#
+# @example
+#   _printFileBetween_ "^START$" "^END$" "my_log_file.txt"
+#
 _printFileBetween_() (
-    # DESC:
-    #					Prints text of a file between two regex patterns
-    # ARGS:
-    #					$1 (Required):	Starting regex pattern
-    #					$2 (Required):	Ending regex pattern
-    #					$3 (Required):	Input string
-    # OPTIONS:
-    #         -i (Optional) - Case-insensitive regex
-    #         -r (Optional) - Remove first and last lines (ie - the lines which matched the patterns)
-    #         -g (Optional) - Greedy regex (Defaults to non-greedy)
-    # OUTS:
-    #					 0:  Success
-    #					 1:  Failure
-    #					stdout: Prints text between two regex patterns
-    # USAGE:
-    #					_printFileBetween_ "^pattern1$" "^pattern2$" "String or variable containing a string"
-
     [[ $# -lt 3 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _removeLines=false
@@ -749,16 +757,17 @@ _printFileBetween_() (
     fi
 )
 
+# @description Returns a single random line from a given file.
+#
+# @arg $1 path (required) The input file.
+#
+# @stdout A single random line from the file.
+# @exitcode 1 If the file is not found.
+#
+# @example
+#   random_quote=$(_randomLineFromFile_ "quotes.txt")
+#
 _randomLineFromFile_() {
-    # DESC:
-    #         Returns a random line from a file
-    # ARGS:
-    #         $1 (Required) - Input file
-    # OUTS:
-    #         Returns random line from file
-    # USAGE:
-    #         _randomLineFromFile_ "file.txt"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _fileToRead="$1"
@@ -774,16 +783,17 @@ _randomLineFromFile_() {
     sed -n "${_rnd}p" "${_fileToRead}"
 }
 
+# @description Prints each line of a file to stdout.
+#
+# @arg $1 path (required) The input file.
+#
+# @stdout The entire content of the file.
+# @exitcode 1 If the file is not found.
+#
+# @example
+#   _readFile_ "/etc/hosts"
+#
 _readFile_() {
-    # DESC:
-    #         Prints each line of a file
-    # ARGS:
-    #         $1 (Required) - Input file
-    # OUTS:
-    #         Prints contents of file
-    # USAGE:
-    #         _readFile_ "file.txt"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _result
@@ -800,15 +810,17 @@ _readFile_() {
     done <"${_fileToRead}"
 }
 
+# @description Safely sources a file into the current script.
+#   Exits with a fatal error if the file does not exist or fails to be sourced.
+#
+# @arg $1 path (required) The file to be sourced.
+#
+# @exitcode 0 If the file is sourced successfully.
+#
+# @example
+#   _sourceFile_ "my_config.conf"
+#
 _sourceFile_() {
-    # DESC:
-    #         Source a file into a script safely.  Will exit script if the file does not exist.
-    # ARGS:
-    #         $1 (Required) - File to be sourced
-    # OUTS:
-    #         0 if file sourced successfully
-    #         exit script if file not sourced
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local _fileToSource="$1"
@@ -822,14 +834,18 @@ _sourceFile_() {
     fi
 }
 
+# @description Converts a YAML file to JSON format.
+#
+# @arg $1 path (required) The input YAML file.
+#
+# @stdout The converted content in JSON format.
+#
+# @note This function requires `python` and the `pyyaml` library to be installed. (`pip install pyyaml`)
+#
+# @example
+#   _yaml2json_ "config.yml" > "config.json"
+#
 _yaml2json_() {
-    # DESC:
-    #         Convert a YAML file to JSON
-    # ARGS:
-    #         $1 (Required) - Input YAML file
-    # OUTS:
-    #         stdout: JSON
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     python -c 'import sys, yaml, json; json.dump(yaml.load(sys.stdin), sys.stdout, indent=4)' <"${1:?_yaml2json_ needs a file}"
