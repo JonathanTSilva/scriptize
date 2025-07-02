@@ -69,20 +69,6 @@ declare -a ARGS=()
 #   trap '_trapCleanup_ ${LINENO} ${BASH_LINENO} "${BASH_COMMAND}" "${FUNCNAME[*]}" "${0}" "${BASH_SOURCE[0]}"' EXIT INT TERM SIGINT SIGQUIT SIGTERM
 #
 _trapCleanup_() {
-    # DESC:
-    #         Log errors and cleanup from script when an error is trapped.  Called by 'trap'
-    # ARGS:
-    #         $1:  Line number where error was trapped
-    #         $2:  Line number in function
-    #         $3:  Command executing at the time of the trap
-    #         $4:  Names of all shell functions currently in the execution call stack
-    #         $5:  Scriptname
-    #         $6:  $BASH_SOURCE
-    # USAGE:
-    #         trap '_trapCleanup_ ${LINENO} ${BASH_LINENO} "${BASH_COMMAND}" "${FUNCNAME[*]}" "${0}" "${BASH_SOURCE[0]}"' EXIT INT TERM SIGINT SIGQUIT SIGTERM ERR
-    # OUTS:
-    #         Exits script with error code 1
-
     local _line=${1:-} # LINENO
     local _linecallfunc=${2:-}
     local _command="${3:-}"
@@ -124,16 +110,6 @@ _trapCleanup_() {
 #   # baseDir is now "/usr/local/bin"
 #
 _findBaseDir_() {
-    # DESC:
-    #         Locates the real directory of the script being run. Similar to GNU readlink -n
-    # ARGS:
-    #         None
-    # OUTS:
-    #         stdout: prints result
-    # USAGE:
-    #         baseDir="$(_findBaseDir_)"
-    #         cp "$(_findBaseDir_ "somefile.txt")" "other_file.txt"
-
     local _source
     local _dir
 
@@ -164,17 +140,6 @@ _findBaseDir_() {
 #   _sourceUtilities_ "$(_findBaseDir_)/utilities"
 #
 _sourceUtilities_() {
-    # DESC:
-    #         Sources utility functions.  Absolute paths are required for shellcheck to correctly
-    #         parse the sourced files
-    # ARGS:
-    #         $1 (Required):  Absolute path to the directory containing the utilities
-    # OUTS:
-    #         0:  Success
-    #         1:  Failure
-    # USAGE:
-    #         _sourceUtilities_ "$(_findBaseDir_)/../../shell-scripting-templates/utilities"
-
     local _utilsPath
     _utilsPath="${1}"
 
@@ -275,16 +240,6 @@ _sourceUtilities_() {
 #   _parseOptions_ "$@"
 #
 _parseOptions_() {
-    # DESC:
-    #         Iterates through options passed to script and sets variables. Will break -ab into -a -b
-    #         when needed and --foo=bar into --foo bar
-    # ARGS:
-    #         $@ from command line
-    # OUTS:
-    #         Sets array 'ARGS' containing all arguments passed to script that were not parsed as options
-    # USAGE:
-    #         _parseOptions_ "$@"
-
     # Iterate over options
     local _optstring=h
     declare -a _options
