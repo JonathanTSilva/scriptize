@@ -1,16 +1,28 @@
-# Functions for providing alerts to the user and logging them
+#===================================================================================================
+# @file alerts.bash
+# @brief A library of functions for providing colorful, leveled alerts and logging them to a file.
+# @description
+#   This library provides a set of functions to print standardized messages
+#   to the screen and to a log file. It supports multiple alert levels,
+#   color-coded output, and automatic detection of terminal capabilities.
+#
+#   Global variables used by this library:
+#     - QUIET:    (true/false) Suppresses all screen output if true.
+#     - VERBOSE:  (true/false) Enables DEBUG level messages on screen if true.
+#     - LOGLEVEL: (string) Sets the logging verbosity (e.g., ERROR, INFO, DEBUG).
+#     - LOGFILE:  (path) The full path to the log file.
+#     - COLUMNS:  (integer) The width of the terminal.
+#
+#===================================================================================================
 # shellcheck disable=SC2034,SC2154
 
+# @description Sets global color variables for use52 in alerts.
+#   It auto-detects if the terminal supports 256 colors and falls back gracefully.
+#
+# @example
+#   _setColors_
+#   printf "%s\n" "${blue}Some blue text${reset}"
 _setColors_() {
-    # DESC:
-    #         Sets colors use for alerts.
-    # ARGS:
-    #         None
-    # OUTS:
-    #         None
-    # USAGE:
-    #         printf "%s\n" "${blue}Some text${reset}"
-
     if tput setaf 1 >/dev/null 2>&1; then
         bold=$(tput bold)
         underline=$(tput smul)
@@ -50,24 +62,26 @@ _setColors_() {
     fi
 }
 
+# @description The core engine for all alerts. Controls printing of messages to stdout and log files.
+#   This function is typically not called directly, but through its wrappers (error, info, etc.).
+#
+# @arg $1 string (required) The type of alert: success, header, notice, dryrun, debug, warning, error, fatal, info, input.
+# @arg $2 string (required) The message to be printed.
+# @arg $3 integer (optional) The line number, passed via `${LINENO}` to show where the alert was triggered.
+#
+# @stdout The formatted and colorized message.
+# @stderr Nothing is printed to stderr.
+#
+# @note The colors for each alert type are defined within this function.
+# @note For `fatal` and `error` alerts, the function stack is automatically printed.
+#
+# @see error()
+# @see info()
+# @see fatal()
+#
+# @example
+#   _alert_ "success" "The operation was completed." "${LINENO}"
 _alert_() {
-    # DESC:
-    #         Controls all printing of messages to log files and stdout.
-    # ARGS:
-    #         $1 (required) - The type of alert to print
-    #                         (success, header, notice, dryrun, debug, warning, error,
-    #                         fatal, info, input)
-    #         $2 (required) - The message to be printed to stdout and/or a log file
-    #         $3 (optional) - Pass '${LINENO}' to print the line number where the _alert_ was triggered
-    # OUTS:
-    #         stdout: The message is printed to stdout
-    #         log file: The message is printed to a log file
-    # USAGE:
-    #         [_alertType] "[MESSAGE]" "${LINENO}"
-    # NOTES:
-    #         - The colors of each alert type are set in this function
-    #         - For specified alert types, the funcstac will be printed
-
     local _color
     local _alertType="${1}"
     local _message="${2}"
@@ -183,29 +197,74 @@ _alert_() {
 
 } # /_alert_
 
+# @description Prints an error message. A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 error() { _alert_ error "${1}" "${2:-}"; }
+
+# @description Prints a warning message. A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 warning() { _alert_ warning "${1}" "${2:-}"; }
+
+# @description Prints a notice message (bold). A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 notice() { _alert_ notice "${1}" "${2:-}"; }
+
+# @description Prints an informational message (gray). A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 info() { _alert_ info "${1}" "${2:-}"; }
+
+# @description Prints a success message (green). A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 success() { _alert_ success "${1}" "${2:-}"; }
+
+# @description Prints a dryrun message (blue). A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 dryrun() { _alert_ dryrun "${1}" "${2:-}"; }
+
+# @description Prints an input prompt message (bold/underline). A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 input() { _alert_ input "${1}" "${2:-}"; }
+
+# @description Prints a header message (bold/white/underline). A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 header() { _alert_ header "${1}" "${2:-}"; }
+
+# @description Prints a debug message (purple). A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @see _alert_
 debug() { _alert_ debug "${1}" "${2:-}"; }
+
+# @description Prints a fatal error message and exits the script with code 1. A wrapper for `_alert_`.
+# @arg $1 string (required) The message to print.
+# @arg $2 integer (optional) The line number (`${LINENO}`).
+# @exitcode 1 Always returns 1 to signify an error.
+# @see _alert_
 fatal() {
     _alert_ fatal "${1}" "${2:-}"
     return 1
 }
 
+# @description Prints the current function stack. Used for debugging and error reporting.
+# @stdout Prints the stack trace in the format `( [function1]:[file1]:[line1] < [function2]:[file2]:[line2] )`.
+# @note This function intelligently omits functions from this library to avoid noise.
 _printFuncStack_() {
-    # DESC:
-    #         Prints the function stack in use. Used for debugging, and error reporting.
-    # ARGS:
-    #         None
-    # OUTS:
-    #         stdout: Prints [function]:[file]:[line]
-    # NOTE:
-    #         Does not print functions from the alert class
     local _i
     declare -a _funcStackResponse=()
     for ((_i = 1; _i < ${#BASH_SOURCE[@]}; _i++)); do
@@ -225,21 +284,15 @@ _printFuncStack_() {
     printf ' )\n'
 }
 
+# @description Prints text centered in the terminal window.
+# @arg $1 string (required) Text to center.
+# @arg $2 char (optional) Fill character to use for padding. Defaults to a space.
+# @stdout The centered text, padded with the fill character.
+# @exitcode 1 If no arguments are provided.
+# @see [Credit](https://github.com/labbots/bash-utility)
+# @example
+#   _centerOutput_ "--- Main Menu ---" "-"
 _centerOutput_() {
-    # DESC:
-    #         Prints text centered in the terminal window with an optional fill character
-    # ARGS:
-    #         $1 (required): Text to center
-    #         $2 (optional): Fill character
-    # OUTS:
-    #         0 - Success
-    #         1 - Failure
-    #         stdout:
-    # USAGE:
-    #         _centerOutput_ "Text to print in the center" "-"
-    # CREDIT:
-    #         https://github.com/labbots/bash-utility
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     local _input="${1}"
     local _symbol="${2:- }"
@@ -262,17 +315,15 @@ _centerOutput_() {
     printf "%s\n" "${_out}"
 }
 
+# @description Clears a specified number of lines in the terminal above the current cursor position.
+# @arg $1 integer (optional) The number of lines to clear. Defaults to 1.
+# @note This function requires `_isTerminal_()` to be available.
+# @see _isTerminal_
+# @example
+#   echo "This line will be cleared."
+#   sleep 2
+#   _clearLine_ 1
 _clearLine_() (
-    # DESC:
-    #         Clears output in the terminal on the specified line number.
-    # ARGS:
-    #         $1 (Optional): Line number to clear. (Defaults to 1)
-    # OUTS:
-    #         0:  Success
-    #         1:  Failure
-    # USAGE:
-    #         _clearLine_ "2"
-
     ! declare -f _isTerminal_ &>/dev/null && fatal "${FUNCNAME[0]} needs function _isTerminal_"
 
     local _num="${1:-1}"
@@ -285,26 +336,20 @@ _clearLine_() (
     fi
 )
 
+# @description Prints output in two columns with fixed widths and text wrapping.
+# @option -b | -B Bold the left column.
+# @option -u | -U Underline the left column.
+# @option -r | -R Reverse colors for the left column.
+# @arg $1 string (required) Key name (Left column text).
+# @arg $2 string (required) Long value (Right column text. Wraps if too long).
+# @arg $3 integer (optional) Number of 2-space tabs to indent the output. Default is 0.
+# @arg $4 integer (optional) Total character width of the left column. Default is 35.
+# @stdout The formatted two-column output.
+# @exitcode 1 If required arguments are missing or an unrecognized option is passed.
+# @note Long text or ANSI colors in the first column may create display issues.
+# @example
+#   _columns_ -b "Status" "All systems are operational and running at peak performance."
 _columns_() {
-    # DESC:
-    #         Prints a two column output with fixed widths and wrapping text from a key/value pair.
-    #         Optionally pass a number of 2 space tabs to indent the output.
-    # ARGS:
-    #         $1 (required): Key name (Left column text)
-    #         $2 (required): Long value (Right column text. Wraps around if too long)
-    #         $3 (optional): Number of 2 character tabs to indent the command (default 1)
-    #         $4 (optional): Total character width of the left column (default 35)
-    # OPTS:
-    #         -b    Bold the left column
-    #         -u    Underline the left column
-    #         -r    Reverse background and foreground colors
-    # OUTS:
-    #         stdout: Prints the output in columns
-    # NOTE:
-    #         Long text or ANSI colors in the first column may create display issues
-    # USAGE:
-    #         _columns_ "Key" "Long value text" [tab level]
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local opt
@@ -365,3 +410,16 @@ _columns_() {
         printf "%-${_leftIndent}s${_style}%-${_leftColumnWidth}b${reset} %b\n" "" "${_key}${reset}" "${_line}"
     done <<<"$(fold -w${_rightWrapLength} -s <<<"${_value}")"
 }
+
+# Simple comments (do not show in the section)
+# * Highlited comment
+# ! Attention comment (Error, Warning...)
+# ? Question comment
+# TODO: todo item
+
+#   [ ] todo: some entry
+# - [ ] todo: some list entry
+# ! [ ] BUG: important thing
+# ? [ ] MARK: still todo?
+# - [x] FIX: we already have fixed that
+# ? [x] FIX: should be fixed already

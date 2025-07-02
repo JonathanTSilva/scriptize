@@ -44,3 +44,20 @@ pip install pre-commit
 ```bash
 pre-commit install
 ```
+
+## Generating Bash Docs
+
+Run It: Now you can run this script from the root of your repository without any installation. It will behave exactly like the original shdoc.
+Bash
+
+**Generate documentation for a single file**
+
+```bash
+./utils/shdoc < ./bash/utilities/alerts.bash > docs/alerts_api.md
+```
+
+**Generate a single documentation file for all utilities**
+
+```bash
+./utils/shdoc < ./bash/utilities/*.bash > docs/BASH_API_REFERENCE.md
+```
