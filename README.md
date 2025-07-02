@@ -1,6 +1,6 @@
 # scriptize
 
-➕ Improve maintainability, readability, and efficiency of your scripts by standardize your scripting environment .
+➕ Improve maintainability, readability, and efficiency of your scripts by standardize your scripting environment.
 
 ## Requirements
 
