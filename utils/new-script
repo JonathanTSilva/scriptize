@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Load the path to the templates repository
+if [[ -f /etc/script-templates/config ]]; then
+    source /etc/script-templates/config
+else
+    echo "Error: Configuration file not found. Please run install.sh" >&2
+    exit 1
+fi
+
+if [[ -z "${TEMPLATE_REPO_PATH}" ]]; then
+    echo "Error: TEMPLATE_REPO_PATH is not set in the config. Please re-run install.sh" >&2
+    exit 1
+fi
+
+if [[ $# -ne 2 ]]; then
+    echo "Usage: $(basename "$0") <bash|python> <project_name>"
+    exit 1
+fi
+
+type="$1"
+proj_name="$2"
+
+if [[ -d "$proj_name" ]]; then
+    echo "Error: Directory '$proj_name' already exists."
+    exit 1
+fi
+
+echo "Creating new $type project: $proj_name"
+mkdir -p "$proj_name"
+cd "$proj_name"
+
+case "$type" in
+bash)
+    script_name="${proj_name}.sh"
+    template_path="${TEMPLATE_REPO_PATH}/bash/template.sh"
+    cp "$template_path" "./${script_name}"
+    chmod +x "./${script_name}"
+
+    # This is the key: create a symlink to the utilities directory
+    ln -s "${TEMPLATE_REPO_PATH}/bash/utilities" ./utilities
+
+    # Modify the template to use the new relative path
+    # The original template is complex, so let's adjust the _sourceUtilities_ call
+    # The default is: _sourceUtilities_ "$(_findBaseDir_)/../shell-scripting-templates/utilities"
+    # We will change it to: _sourceUtilities_ "$(_findBaseDir_)/utilities"
+    sed -i 's#_sourceUtilities_.*#_sourceUtilities_ "$(_findBaseDir_)/utilities"#' "./${script_name}"
+
+    echo "Created ${script_name}"
+    echo "Created symlink to utilities/"
+    echo "Your new project is ready in the './${proj_name}' directory."
+    ;;
+python)
+    script_name="${proj_name}.py"
+    template_path="${TEMPLATE_REPO_PATH}/python/template.py"
+    cp "$template_path" "./${script_name}"
+    chmod +x "./${script_name}"
+    echo "Created ${script_name}"
+    echo "Remember to setup your python environment (e.g., venv)."
+    ;;
+*)
+    cd .. && rm -r "$proj_name" # cleanup
+    echo "Error: Invalid type '$type'. Choose 'bash' or 'python'." >&2
+    exit 1
+    ;;
+esac
+
+echo "Done. Happy scripting!"
