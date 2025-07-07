@@ -159,6 +159,7 @@ def panel(
     Args:
         content: The main text content for the panel.
         title: An optional title for the panel.
+        title_align: The alignment of the title (e.g., "left", "center", "right").
         style: The border color of the panel.
         padding: Vertical and horizontal padding.
     """
@@ -196,35 +197,34 @@ def spinner(text: str = "Processing...", *, style: str = "cyan") -> Generator[Sp
 # ==================================================================================================
 
 
-def _get_key() -> str:
-    """Gets a single key press, platform-independently."""
-    if "msvcrt" in sys.modules:
-        # Windows
+def _get_key_windows() -> str:
+    """Gets a single key press on Windows."""
+    key = msvcrt.getch()
+    if key == b"\r":
+        return "ENTER"
+    if key == b"\x03":
+        raise KeyboardInterrupt
+    if key in {b"\xe0", b"\x00"}:  # Arrow keys start with a prefix
         key = msvcrt.getch()
-        if key == b"\r":
-            return "ENTER"
-        if key == b"\x03":
-            raise KeyboardInterrupt
-        if key in {b"\xe0", b"\x00"}:  # Arrow keys start with a prefix
-            key = msvcrt.getch()
-            if key == b"H":
-                return "UP"
-            if key == b"P":
-                return "DOWN"
-        return ""  # Ignore other keys
-    # Unix-like systems
+        if key == b"H":
+            return "UP"
+        if key == b"P":
+            return "DOWN"
+    return ""  # Ignore other keys
+
+
+def _get_key_unix() -> str:
+    """Gets a single key press on Unix-like systems."""
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
-        # Read one byte at a time to correctly handle single-byte chars like Enter
         char = sys.stdin.read(1)
         if char == "\r":
             return "ENTER"
         if char == "\x03":  # Ctrl+C
             raise KeyboardInterrupt
         if char == "\x1b":  # Arrow keys start with an escape sequence
-            # Read the next two characters of the escape sequence
             seq = sys.stdin.read(2)
             if seq == "[A":
                 return "UP"
@@ -233,6 +233,13 @@ def _get_key() -> str:
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ""  # Ignore other keys
+
+
+def _get_key() -> str:
+    """Gets a single key press, platform-independently."""
+    if "msvcrt" in sys.modules:
+        return _get_key_windows()
+    return _get_key_unix()
 
 
 def selection[T](message: str, choices: list[T]) -> T:
@@ -246,7 +253,8 @@ def selection[T](message: str, choices: list[T]) -> T:
         The option selected by the user.
     """
     if not choices:
-        raise ValueError("Cannot make a selection from an empty list of choices.")
+        error_msg = "Cannot make a selection from an empty list of choices."
+        raise ValueError(error_msg)
 
     current_index = 0
     prompt_text = Text.from_markup(f"[bold yellow]\\[?][/bold yellow] {message}\n")
@@ -276,7 +284,7 @@ def selection[T](message: str, choices: list[T]) -> T:
                 live.update(generate_menu(), refresh=True)
     except KeyboardInterrupt:
         # Ensure the cursor is shown and exit gracefully if user presses Ctrl+C
-        console.show_cursor(True)
+        console.show_cursor(show=True)
         fatal("User cancelled operation.", exit_code=0)
 
     selected_choice = choices[current_index]
@@ -331,6 +339,7 @@ def confirm(message: str, *, default: bool = False) -> bool:
 # ==================================================================================================
 
 if __name__ == "__main__":
+    # TODO: Migrate this demo tests to a test suite using pytest
     # This block allows you to run `python -m src.scriptizepy.alerts` to see a demo.
     import time
 
