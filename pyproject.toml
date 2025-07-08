@@ -82,6 +82,7 @@ ignore = [
             'Q000', # flake8-quotes.inline-quotes="double
             'Q003',
             'COM812',
+            'FIX002',
 ]
 fixable = ["ALL"]  # ['A', 'B', 'C', 'D', 'E', 'F', 'Q']
 unfixable = []

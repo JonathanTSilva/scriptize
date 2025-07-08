@@ -339,7 +339,7 @@ def confirm(message: str, *, default: bool = False) -> bool:
 # ==================================================================================================
 
 if __name__ == "__main__":
-    # TODO: Migrate this demo tests to a test suite using pytest
+    # TODO(jonathantsilva): [#1] Migrate this demo tests to a test suite using pytest
     # This block allows you to run `python -m src.scriptizepy.alerts` to see a demo.
     import time
 

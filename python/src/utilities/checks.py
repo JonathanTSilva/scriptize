@@ -237,6 +237,7 @@ def is_empty(value: AcceptableTypes) -> bool:
 # ==============================================================================
 
 if __name__ == "__main__":
+    # TODO(jonathantsilva): [#1] Migrate this tests to a test suite using pytest
     # To run this demo, you need the alerts module from this library.
     # This demonstrates how the library modules can work together.
     try:
