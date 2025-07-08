@@ -9,6 +9,7 @@ import logging
 import sys
 from collections.abc import Generator
 from contextlib import contextmanager
+from shutil import get_terminal_size
 
 import typer
 from rich.console import Console
@@ -16,7 +17,6 @@ from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
-from rich.rule import Rule
 from rich.spinner import Spinner
 from rich.text import Text
 
@@ -61,6 +61,11 @@ def setup_logging(level: str = "INFO") -> None:
         # Create the error message separately to avoid complex f-strings in exceptions
         error_message = f"Invalid log level: {log_level}"
         raise ValueError(error_message) from e
+
+    # Clear all handlers if already configured
+    root_logger = logging.getLogger()
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
 
     # Configure the handler
     handler = RichHandler(
@@ -114,7 +119,7 @@ def fatal(message: str, exit_code: int = 1) -> None:
 
 def debug(message: str) -> None:
     """Logs a debug message, only visible when log level is set to DEBUG."""
-    logger.debug("[bold magenta][DEBUG][/bold magenta] %s", message)
+    logger.debug("[bold magenta]\\[DEBUG][/bold magenta] %s", message)
 
 
 # ==================================================================================================
@@ -132,6 +137,7 @@ def section(title: str, style: str = "bold magenta") -> None:
         title: The title of the section.
         style: The color and style of the panel's border and title.
     """
+    console.print()
     console.print(
         Panel(
             Text(f" {title.upper()} ", style="white", justify="center"),
@@ -143,7 +149,18 @@ def section(title: str, style: str = "bold magenta") -> None:
 
 def header(title: str, style: str = "bold blue") -> None:
     """Displays a prominent, centered header using a Rich Rule."""
-    console.print(Rule(Text(f"├────  {title} ", style=style), style=style, align="left"))
+    prefix = "╭───⦗  "
+    suffix = "  ⦘"
+    end_marker = "╮"
+
+    full_title = f"{prefix}{title}{suffix}"
+    term_width = get_terminal_size().columns
+    rule_fill_len = max(0, term_width - len(full_title) - len(end_marker))
+    rule_fill = "─" * rule_fill_len
+
+    line = f"{full_title}{rule_fill}{end_marker}"
+    console.print()
+    console.print(Text(line, style=style))
 
 
 def panel(
@@ -340,6 +357,7 @@ def confirm(message: str, *, default: bool = False) -> bool:
 
 if __name__ == "__main__":
     # TODO(jonathantsilva): [#1] Migrate this demo tests to a test suite using pytest
+    # - [ ] TODO: Create a logfile scheme with rotation and retention (with timestamp, etc.)
     # This block allows you to run `python -m src.scriptizepy.alerts` to see a demo.
     import time
 
@@ -358,12 +376,10 @@ if __name__ == "__main__":
     warning("Something might be wrong, please check.")
     error("A recoverable error occurred.")
     debug("This debug message will NOT be visible.")
-    console.print()
 
     header("Log Level: DEBUG")
     setup_logging(level="DEBUG")
     debug("This debug message IS now visible.")
-    console.print()
 
     # --- UI ELEMENTS DEMO ---
     section("UI Elements Demo")
@@ -373,7 +389,6 @@ if __name__ == "__main__":
         "You can put multiple lines of text in here.",
         title="Important Notice",
     )
-    console.print()
 
     # --- SPINNER DEMO ---
     section("Spinner Demo")
@@ -387,7 +402,6 @@ if __name__ == "__main__":
             _simulate_failing_task()
     except ValueError as e:
         error(f"The task failed: {e}")
-    console.print()
 
     # --- INTERACTIVE DEMO ---
     section("Interactive Demo")
