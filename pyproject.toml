@@ -114,6 +114,7 @@ pythonpath = [
 addopts = "--doctest-modules"
 
 [tool.taskipy.tasks]
+# TODO: Create a task pre_docs to generate all the bash docs with shdoc and link them to the mkdocs
 lint = "ruff check . && isort --check --diff . | colordiff"
 lint_fix = "ruff check . --fix"
 format = "ruff format . && isort ."
