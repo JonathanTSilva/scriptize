@@ -79,10 +79,11 @@ select = ["ALL"]
 # whereas adding `T20` will only ignore the `T20` error
 # (and probably any errors that start with `T20`)
 ignore = [
-            'Q000', # flake8-quotes.inline-quotes="double
+            'Q000',  # flake8-quotes.inline-quotes="double
             'Q003',
             'COM812',
             'FIX002',
+            'TD003',
 ]
 fixable = ["ALL"]  # ['A', 'B', 'C', 'D', 'E', 'F', 'Q']
 unfixable = []

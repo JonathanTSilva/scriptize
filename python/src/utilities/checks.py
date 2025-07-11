@@ -181,7 +181,7 @@ def is_numeric(value: AcceptableTypes) -> bool:
     Returns:
         True if the value is numeric, False otherwise.
     """
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return True
     if isinstance(value, str):
         try:

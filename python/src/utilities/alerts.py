@@ -180,17 +180,6 @@ def panel(
         style: The border color of the panel.
         padding: Vertical and horizontal padding.
     """
-    # panel_title = Text(title, style=f"bold {style}") if title else None
-    # console.print(
-    #     Panel(
-    #         Text(content, style="white"),
-    #         title=panel_title,
-    #         title_align=title_align,
-    #         border_style=style,
-    #         padding=padding,
-    #         expand=True,
-    #     )
-    # )
     panel_title = Text.from_markup(title) if title else None
     console.print(
         Panel(
@@ -368,7 +357,7 @@ def confirm(message: str, *, default: bool = False) -> bool:
 
 if __name__ == "__main__":
     # TODO(jonathantsilva): [#1] Migrate this demo tests to a test suite using pytest
-    # TODO: Create a logfile scheme with rotation and retention (with timestamp, etc.)
+    # TODO(jonathantsilva): Create a logfile scheme with rotation and retention (timestamp, etc.)
     # This block allows you to run `python -m src.scriptizepy.alerts` to see a demo.
     import time
 
