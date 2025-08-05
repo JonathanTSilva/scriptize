@@ -32,11 +32,7 @@ except ImportError:
 AcceptableTypes = str | int | float | list | dict | set | tuple | None
 
 
-# ==================================================================================================
-# System & Command Checks
-# ==================================================================================================
-
-
+# *====[ System & Command Checks ]====*
 def command_exists(name: str) -> bool:
     """Check if a command exists on the system's PATH.
 
@@ -90,11 +86,7 @@ def is_terminal() -> bool:
     return sys.stdout.isatty()
 
 
-# ==================================================================================================
-# File System Checks
-# ==================================================================================================
-
-
+# *====[ File System Checks ]====*
 def is_file(path: str | Path) -> bool:
     """Check if a given path exists and is a file.
 
@@ -119,11 +111,7 @@ def is_dir(path: str | Path) -> bool:
     return Path(path).is_dir()
 
 
-# ==================================================================================================
-# Data Format & Type Validation
-# ==================================================================================================
-
-
+# *====[ Data Format & Type Validation ]====*
 def is_email(value: str) -> bool:
     """Validate if a string is a valid email address.
 
@@ -193,11 +181,7 @@ def is_numeric(value: AcceptableTypes) -> bool:
     return False
 
 
-# ==================================================================================================
-# Boolean & Value Checks
-# ==================================================================================================
-
-
+# *====[ Boolean & Value Checks ]====*
 def is_true(value: AcceptableTypes) -> bool:
     """Check if a value evaluates to a "true" boolean.
 
@@ -232,21 +216,18 @@ def is_empty(value: AcceptableTypes) -> bool:
     return False
 
 
-# ==================================================================================================
-# Demonstration
-# ==================================================================================================
-
-if __name__ == "__main__":
+# *====[ Demonstration ]====*
+def demo() -> None:
     # TODO(jonathantsilva): [#1] Migrate this tests to a test suite using pytest
-    # To run this demo, you need the alerts module from this library.
+    # To run this demo, you need the cli module from this library.
     # This demonstrates how the library modules can work together.
     try:
-        # Use a relative import to find the alerts module within the same package.
-        from . import alerts
+        # Use a relative import to find the cli module within the same package.
+        from . import cli
     except ImportError:
-        sys.stderr.write("Could not import the 'alerts' module for this demonstration.\n")
+        sys.stderr.write("Could not import the 'cli' module for this demonstration.\n")
 
-        # Create a fallback for the demo if alerts doesn't exist
+        # Create a fallback for the demo if cli doesn't exist
         class FallbackAlerts:
             """A fallback class to provide dummy alert methods for the demo."""
 
@@ -258,59 +239,59 @@ if __name__ == "__main__":
 
                 return printer
 
-        alerts = FallbackAlerts()  # type: ignore[assignment]
+        cli = FallbackAlerts()  # type: ignore[assignment]
 
-    alerts.section("ScriptizePy Checks Demo")
+    cli.section("ScriptizePy Checks Demo")
 
     # A simple helper to format boolean checks for the demo output.
     def format_check(*, check: bool) -> str:
         """Formats a boolean value into a colored Yes/No string."""
         return "[bold green]✔ Yes[/]" if check else "[bold red]✖ No[/]"
 
-    alerts.setup_logging(level="INFO")
+    cli.setup_logging(default_level="INFO")
     # --- System Checks ---
-    alerts.header("System Checks")
-    alerts.info(f"Command 'python' exists: {format_check(check=command_exists('python'))}")
-    alerts.info(
+    cli.header("System Checks")
+    cli.info(f"Command 'python' exists: {format_check(check=command_exists('python'))}")
+    cli.info(
         f"Command 'nonexistentcmd' exists: {format_check(check=command_exists('nonexistentcmd'))}"
     )
-    alerts.info(f"Running as root: {format_check(check=is_root())}")
-    alerts.info(f"Internet is available: {format_check(check=is_internet_available())}")
-    alerts.info(f"Running in a terminal: {format_check(check=is_terminal())}")
+    cli.info(f"Running as root: {format_check(check=is_root())}")
+    cli.info(f"Internet is available: {format_check(check=is_internet_available())}")
+    cli.info(f"Running in a terminal: {format_check(check=is_terminal())}")
 
     # --- File System Checks ---
-    alerts.header("File System Checks")
+    cli.header("File System Checks")
     Path("temp_test_file.txt").touch()
     Path("temp_test_dir").mkdir(exist_ok=True)
-    alerts.info(
+    cli.info(
         f"Path 'temp_test_file.txt' is a file: {format_check(check=is_file('temp_test_file.txt'))}"
     )
-    alerts.info(f"Path 'temp_test_dir' is a file: {format_check(check=is_file('temp_test_dir'))}")
-    alerts.info(
-        f"Path 'temp_test_dir' is a directory: {format_check(check=is_dir('temp_test_dir'))}"
-    )
-    alerts.info(
+    cli.info(f"Path 'temp_test_dir' is a file: {format_check(check=is_file('temp_test_dir'))}")
+    cli.info(f"Path 'temp_test_dir' is a directory: {format_check(check=is_dir('temp_test_dir'))}")
+    cli.info(
         f"Path 'nonexistent_path' is a directory: {format_check(check=is_dir('nonexistent_path'))}"
     )
     Path("temp_test_file.txt").unlink()
     Path("temp_test_dir").rmdir()
 
     # --- Data Format Validation ---
-    alerts.header("Data Format Validation")
-    alerts.info(
-        f"'test@example.com' is an email: {format_check(check=is_email('test@example.com'))}"
-    )
-    alerts.info(f"'not-an-email' is an email: {format_check(check=is_email('not-an-email'))}")
-    alerts.info(f"'192.168.1.1' is IPv4: {format_check(check=is_ipv4('192.168.1.1'))}")
-    alerts.info(f"'999.9.9.9' is IPv4: {format_check(check=is_ipv4('999.9.9.9'))}")
-    alerts.info(f"'google.com' is FQDN: {format_check(check=is_fqdn('google.com'))}")
-    alerts.info(f"'not_a_domain' is FQDN: {format_check(check=is_fqdn('not_a_domain'))}")
-    alerts.info(f"'123.45' is numeric: {format_check(check=is_numeric('123.45'))}")
-    alerts.info(f"'abc' is numeric: {format_check(check=is_numeric('abc'))}")
+    cli.header("Data Format Validation")
+    cli.info(f"'test@example.com' is an email: {format_check(check=is_email('test@example.com'))}")
+    cli.info(f"'not-an-email' is an email: {format_check(check=is_email('not-an-email'))}")
+    cli.info(f"'192.168.1.1' is IPv4: {format_check(check=is_ipv4('192.168.1.1'))}")
+    cli.info(f"'999.9.9.9' is IPv4: {format_check(check=is_ipv4('999.9.9.9'))}")
+    cli.info(f"'google.com' is FQDN: {format_check(check=is_fqdn('google.com'))}")
+    cli.info(f"'not_a_domain' is FQDN: {format_check(check=is_fqdn('not_a_domain'))}")
+    cli.info(f"'123.45' is numeric: {format_check(check=is_numeric('123.45'))}")
+    cli.info(f"'abc' is numeric: {format_check(check=is_numeric('abc'))}")
 
     # --- Boolean & Value Checks ---
-    alerts.header("Boolean & Value Checks")
-    alerts.info(f"is_true('yes'): {format_check(check=is_true('yes'))}")
-    alerts.info(f"is_true(0): {format_check(check=is_true(0))}")
-    alerts.info(f"is_empty([]): {format_check(check=is_empty([]))}")
-    alerts.info(f"is_empty('hello'): {format_check(check=is_empty('hello'))}")
+    cli.header("Boolean & Value Checks")
+    cli.info(f"is_true('yes'): {format_check(check=is_true('yes'))}")
+    cli.info(f"is_true(0): {format_check(check=is_true(0))}")
+    cli.info(f"is_empty([]): {format_check(check=is_empty([]))}")
+    cli.info(f"is_empty('hello'): {format_check(check=is_empty('hello'))}")
+
+
+if __name__ == "__main__":
+    demo()

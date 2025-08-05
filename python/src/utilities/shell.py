@@ -1,5 +1,3 @@
-# src/scriptizepy/shell.py
-
 """A robust, user-friendly utility for executing external shell commands.
 
 This module provides a powerful wrapper around Python's `subprocess` module,
@@ -24,7 +22,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-from . import alerts
+from . import cli
 
 
 # A clear and structured way to return the results of a command.
@@ -46,25 +44,23 @@ class ShellResult:
 
 
 def _frame_output(command: str, result: ShellResult) -> None:
-    """Displays the output of a command inside a styled, rich panel.
-
-    Args:
-        command (str): The command that was executed, used for the panel title.
-        result (ShellResult): The result object containing stdout and stderr.
-    """
-    if not result.stdout and not result.stderr:
-        return
-
+    """Displays the output of a command by calling alerts.framed_box."""
     if result.returncode == 0:
-        panel_title = f"Output of: [bold]{command}[/bold]"
-        content = f"[bright_black]{result.stdout.strip()}[/bright_black]"
-        style = "bright_black"
+        if not result.stdout:
+            return
+        cli.framed_box(
+            result.stdout.strip(),
+            title=f"Output of: [bold]{command}[/bold]",
+            style="info",
+        )
     else:
-        panel_title = f"Error from: [bold]{command}[/bold]"
-        content = f"[light_pink3]{result.stderr.strip()}[/light_pink3]"
-        style = "light_pink3"
-
-    alerts.panel(content, title=panel_title, style=style, title_align="left")
+        if not result.stderr:
+            return
+        cli.framed_box(
+            result.stderr.strip(),
+            title=f"Error from: [bold]{command}[/bold]",
+            style="error",
+        )
 
 
 def _display_parallel_results(results: dict[str, ShellResult]) -> None:
@@ -83,10 +79,10 @@ def _display_parallel_results(results: dict[str, ShellResult]) -> None:
 
     for cmd, res in results.items():
         if res.returncode == 0:
-            alerts.console.print(f" ╰──▹ [green]✔[/] '{cmd}'")
+            cli.console.print(f" ╰──▹ [green]✔[/] '{cmd}'")
             _frame_output(cmd, res)
         else:
-            alerts.console.print(f" ╰──▹ [red]✖[/] '{cmd}'")
+            cli.console.print(f" ╰──▹ [red]✖[/] '{cmd}'")
             _frame_output(cmd, res)
 
 
@@ -99,7 +95,7 @@ def _handle_dry_run(command: str) -> ShellResult:
     Returns:
         ShellResult: A mock result object with a return code of 0.
     """
-    alerts.info(f"[DRY RUN] Would execute: [bold]{command}[/bold]")
+    cli.info(f"[DRY RUN] Would execute: [bold]{command}[/bold]")
     return ShellResult(stdout="", stderr="", returncode=0, pid=-1)
 
 
@@ -200,7 +196,7 @@ def run(
         raise FileNotFoundError(error_msg) from None
     else:
         if should_stream_raw and (result.stdout or result.stderr):
-            alerts.console.line()
+            cli.console.line()
         if should_frame:
             _frame_output(command, result)
         if check and result.returncode != 0:
@@ -280,43 +276,36 @@ def run_background(command: str, *, cwd: str | None = None) -> subprocess.Popen:
     return subprocess.Popen(args, cwd=cwd)  # noqa: S603
 
 
-# ==============================================================================
-# Demonstration
-# ==============================================================================
-
-if __name__ == "__main__":
+# *====[ Demonstration ]====*
+def demo() -> None:
+    """Demonstrates the various features of the shell utility module."""
     # TODO(@jonathantsilva): [#1] Migrate this demo to a test suite using pytest
-    try:
-        from . import alerts
-    except ImportError:
-        sys.exit("This demo requires the 'alerts' module to be available.")
-
-    alerts.setup_logging(level="INFO")
-    alerts.section("ScriptizePy Shell Demo")
+    cli.setup_logging(default_level="INFO")
+    cli.section("ScriptizePy Shell Demo")
 
     # --- Successful Command with Framed Output ---
-    alerts.header("Successful Command (Framed Output)")
+    cli.header("Successful Command (Framed Output)")
     try:
         result = run("ls -l", output_mode="frame")
-        alerts.success(f"Command finished with exit code {result.returncode}")
+        cli.success(f"Command finished with exit code {result.returncode}")
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        alerts.error(f"Command failed: {e}")
+        cli.error(f"Command failed: {e}")
 
     # --- Dry Run ---
-    alerts.header("Dry Run")
+    cli.header("Dry Run")
     run("tldr man", dry_run=True)
 
     # --- Failing Command (check=True) ---
-    alerts.header("Failing Command (check=True)")
-    alerts.info("This will raise a CalledProcessError.")
+    cli.header("Failing Command (check=True)")
+    cli.info("This will raise a CalledProcessError.")
     try:
         # Framing the output of a failing command also works
         run("ls non_existent_directory", output_mode="frame")
     except subprocess.CalledProcessError:
-        alerts.error("Caught expected error!")
+        cli.error("Caught expected error!")
 
     # --- Parallel Execution ---
-    alerts.header("Parallel Execution")
+    cli.header("Parallel Execution")
     parallel_commands = [
         "sleep 1",
         "echo 'Task 2 Done'",
@@ -325,16 +314,20 @@ if __name__ == "__main__":
         "echo 'Task 5 Done'",
         "this_command_fails",  # A failing command
     ]
-    alerts.info(f"Running {len(parallel_commands)} commands in parallel...")
+    cli.info(f"Running {len(parallel_commands)} commands in parallel...")
     parallel_results = run_parallel(parallel_commands)
     _display_parallel_results(parallel_results)
-    alerts.success("Parallel execution finished.")
+    cli.success("Parallel execution finished.")
 
     # --- Background Process ---
-    alerts.header("Background Process")
-    alerts.info("Starting a background 'sleep' process...")
+    cli.header("Background Process")
+    cli.info("Starting a background 'sleep' process...")
     proc = run_background("sleep 2")
-    alerts.info(f"Process started with PID: {proc.pid}. Script continues immediately.")
-    alerts.info("Waiting for background process to complete...")
+    cli.info(f"Process started with PID: {proc.pid}. Script continues immediately.")
+    cli.info("Waiting for background process to complete...")
     proc.wait()
-    alerts.success(f"Background process {proc.pid} has finished.")
+    cli.success(f"Background process {proc.pid} has finished.")
+
+
+if __name__ == "__main__":
+    demo()

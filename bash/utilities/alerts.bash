@@ -410,16 +410,3 @@ _columns_() {
         printf "%-${_leftIndent}s${_style}%-${_leftColumnWidth}b${reset} %b\n" "" "${_key}${reset}" "${_line}"
     done <<<"$(fold -w${_rightWrapLength} -s <<<"${_value}")"
 }
-
-# Simple comments (do not show in the section)
-# * Highlited comment
-# ! Attention comment (Error, Warning...)
-# ? Question comment
-# TODO: todo item
-
-#   [ ] todo: some entry
-# - [ ] todo: some list entry
-# ! [ ] BUG: important thing
-# ? [ ] MARK: still todo?
-# - [x] FIX: we already have fixed that
-# ? [x] FIX: should be fixed already

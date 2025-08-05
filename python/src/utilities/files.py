@@ -31,11 +31,7 @@ except ImportError:
 type DataType = dict[str, "DataType"] | list["DataType"] | str | int | float | bool | None
 
 
-# ==============================================================================
-# Path Information
-# ==============================================================================
-
-
+# *====[ Path Information ]====*
 def get_name(path: str | Path) -> str:
     """Extracts the filename from a path (e.g., 'document.txt')."""
     return Path(path).name
@@ -56,11 +52,7 @@ def get_parent(path: str | Path) -> Path:
     return Path(path).parent
 
 
-# ==============================================================================
-# File Reading & Writing
-# ==============================================================================
-
-
+# *====[ File Reading & Writing ]====*
 def read_file(path: str | Path) -> str:
     """Reads the entire content of a text file.
 
@@ -151,11 +143,7 @@ def write_yaml(path: str | Path, data: DataType) -> None:
         yaml.dump(data, f, allow_unicode=True)
 
 
-# ==============================================================================
-# File & Directory Operations
-# ==============================================================================
-
-
+# *====[ File & Directory Operations ]====*
 def backup_file(path: str | Path, suffix: str | None = None) -> Path:
     """Creates a backup of a file.
 
@@ -265,11 +253,7 @@ def create_temp_file(prefix: str = "tmp_", suffix: str = ".tmp") -> Path:
     return Path(path_str)
 
 
-# ==============================================================================
-# File Content Analysis
-# ==============================================================================
-
-
+# *====[ File Content Analysis ]====*
 def file_contains(path: str | Path, text: str) -> bool:
     """Checks if a text file contains a specific string.
 
@@ -316,18 +300,15 @@ def random_line(path: str | Path) -> str | None:
         return None
 
 
-# ==============================================================================
-# Demonstration
-# ==============================================================================
-
+# *====[ Demonstration ]====*
 if __name__ == "__main__":
     # TODO(@jonathantsilva): Migrate this demo to a test suite using pytest (#2)
     try:
-        from . import alerts
+        from . import cli
     except ImportError:
         sys.exit("This demo requires the 'alerts' module to be available.")
 
-    alerts.section("ScriptizePy Files Demo")
+    cli.section("ScriptizePy Files Demo")
 
     # A simple helper to format boolean checks for the demo output.
     def format_check(*, check: bool) -> str:
@@ -344,59 +325,59 @@ if __name__ == "__main__":
     test_json = demo_dir / "data.json"
     test_yaml = demo_dir / "config.yaml"
 
-    alerts.setup_logging(level="INFO")
+    cli.setup_logging(default_level="INFO")
     # --- Path Info ---
-    alerts.header("Path Information")
-    alerts.info(f"Full path: {test_file.resolve()}")
-    alerts.info(f"Name: {get_name(test_file)}")
-    alerts.info(f"Basename: {get_basename(test_file)}")
-    alerts.info(f"Extension: {get_extension(test_file)}")
-    alerts.info(f"Parent: {get_parent(test_file)}")
+    cli.header("Path Information")
+    cli.info(f"Full path: {test_file.resolve()}")
+    cli.info(f"Name: {get_name(test_file)}")
+    cli.info(f"Basename: {get_basename(test_file)}")
+    cli.info(f"Extension: {get_extension(test_file)}")
+    cli.info(f"Parent: {get_parent(test_file)}")
 
     # --- File Writing & Reading ---
-    alerts.header("File I/O")
+    cli.header("File I/O")
     write_file(test_file, "Line 1: Hello\nLine 2: World\nLine 3: Test")
-    alerts.success(f"Wrote content to {test_file}")
+    cli.success(f"Wrote content to {test_file}")
     content = read_file(test_file)
-    alerts.info(f"Read back {len(content)} characters.")
+    cli.info(f"Read back {len(content)} characters.")
 
     # --- JSON & YAML ---
-    alerts.header("Structured Data (JSON/YAML)")
+    cli.header("Structured Data (JSON/YAML)")
     py_data: DataType = {"user": "scriptize", "settings": {"theme": "dark", "version": 1}}
     write_json(test_json, py_data)
-    alerts.success(f"Wrote JSON to {test_json}")
+    cli.success(f"Wrote JSON to {test_json}")
     json_data = read_json(test_json)
     if isinstance(json_data, dict):
-        alerts.info(f"Read user from JSON: {json_data.get('user')}")
+        cli.info(f"Read user from JSON: {json_data.get('user')}")
 
     write_yaml(test_yaml, py_data)
-    alerts.success(f"Wrote YAML to {test_yaml}")
+    cli.success(f"Wrote YAML to {test_yaml}")
     yaml_data = read_yaml(test_yaml)
     if isinstance(yaml_data, dict) and isinstance(yaml_data.get("settings"), dict):
-        alerts.info(f"Read theme from YAML: {yaml_data.get('settings', {}).get('theme')}")
+        cli.info(f"Read theme from YAML: {yaml_data.get('settings', {}).get('theme')}")
 
     # --- File Operations ---
-    alerts.header("File Operations")
+    cli.header("File Operations")
     backup_path = backup_file(test_file)
-    alerts.success(f"Created backup: {backup_path.name}")
+    cli.success(f"Created backup: {backup_path.name}")
     symlink_path = demo_dir / "report_link.txt"
     create_symlink(test_file, symlink_path, overwrite=True)
-    alerts.success(f"Created symlink: {symlink_path.name}")
+    cli.success(f"Created symlink: {symlink_path.name}")
     is_same = symlink_path.read_text() == test_file.read_text()
-    alerts.info(f"Symlink points to original: {format_check(check=is_same)}")
+    cli.info(f"Symlink points to original: {format_check(check=is_same)}")
 
     # --- Listing & Content ---
-    alerts.header("Listing & Content Analysis")
+    cli.header("Listing & Content Analysis")
     (demo_dir / "image.jpg").touch()
     file_list = list(list_files(demo_dir, "*.txt"))
-    alerts.info(f"Found {len(file_list)} '.txt' file(s): {[f.name for f in file_list]}")
-    alerts.info(f"File contains 'World': {format_check(check=file_contains(test_file, 'World'))}")
-    alerts.info(
+    cli.info(f"Found {len(file_list)} '.txt' file(s): {[f.name for f in file_list]}")
+    cli.info(f"File contains 'World': {format_check(check=file_contains(test_file, 'World'))}")
+    cli.info(
         f"File contains 'Planet': {format_check(check=not file_contains(test_file, 'Planet'))}"
     )
-    alerts.info(f"Random line from file: '{random_line(test_file)}'")
+    cli.info(f"Random line from file: '{random_line(test_file)}'")
 
     # --- Cleanup ---
-    alerts.header("Cleanup")
+    cli.header("Cleanup")
     shutil.rmtree(demo_dir)
-    alerts.success(f"Removed demo directory: {demo_dir}")
+    cli.success(f"Removed demo directory: {demo_dir}")
