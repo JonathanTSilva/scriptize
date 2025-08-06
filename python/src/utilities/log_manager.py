@@ -144,6 +144,7 @@ DEFAULT_LOGGING_CONFIG: LogConfig = {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "json_file",
+            # TODO(jonathan.silva): Change this to a jsonl file and a custom (dynamic) logfile name
             "filename": "logs/app.log.json",
             "maxBytes": 10 * 1024 * 1024,  # 10 MB
             "backupCount": 5,

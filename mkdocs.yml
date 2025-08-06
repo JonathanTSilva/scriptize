@@ -14,3 +14,33 @@ markdown_extensions:
 
 extra_css:
   - assets/stylesheets/extra.css
+
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          # TODO(jonathan.silva): Change the python/ and bash/ folder to templates/python/...
+          paths: [python/src/utilities]
+
+nav:
+  - 'Home': index.md
+  - 'API Reference':
+    - 'Bash Utilities':
+      - 'Alerts': api/bash/alerts.md
+      - 'Arrays': api/bash/arrays.md
+      - 'Checks': api/bash/checks.md
+      - 'Dates': api/bash/dates.md
+      - 'Debug': api/bash/debug.md
+      - 'Files': api/bash/files.md
+      - 'macOS': api/bash/macOS.md
+      - 'Miscellaneous': api/bash/misc.md
+      - 'Services': api/bash/services.md
+      - 'Strings': api/bash/strings.md
+      - 'Template Utilities': api/bash/template_utils.md
+    - 'Python Utilities':
+      - 'Checks': api/python/checks.md
+      - 'CLI': api/python/cli.md
+      - 'Files': api/python/files.md
+      - 'Log Manager': api/python/log_manager.md
+      - 'Shell': api/python/shell.md
+      - 'Strings': api/python/strings.md

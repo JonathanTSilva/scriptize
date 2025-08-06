@@ -1,18 +1,9 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+-   repo: local
     hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
-
--   repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
-    hooks:
-    -   id: shellcheck
-
--   repo: https://github.com/mvdan/sh
-    rev: v3.8.0
-    hooks:
-    -   id: shfmt
-        args: ["-i", "4", "-s"] # Indent with 4 spaces and simplify code
+    -   id: generate-bash-docs
+        name: Generate Bash script documentation
+        entry: bash -c 'for file in ./bash/utilities/*.bash; do ./utils/shdoc < "$file" > "./docs/api/bash/$(basename "${file%.bash}").md"; done && git add ./docs/api/bash/*.md'
+        language: system
+        files: ^bash/utilities/.*\.bash$
+        pass_filenames: false
