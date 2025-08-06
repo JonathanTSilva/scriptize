@@ -65,7 +65,6 @@ class JSONFormatter(logging.Formatter):
         # Strip any Rich markup to ensure the message is clean for JSON
         clean_message = Text.from_markup(plain_message).plain
 
-        # TODO(jonathantsilva): Improve the log object structure based on literature
         log_object: LogConfig = {
             "timestamp": self.formatTime(record, self.datefmt),
             "level": record.levelname,
@@ -74,6 +73,20 @@ class JSONFormatter(logging.Formatter):
             "function": record.funcName,
             "line": record.lineno,
         }
+
+        optional_fields = [
+            "process",
+            "processName",
+            "thread",
+            "threadName",
+            "taskName",
+        ]
+
+        # Iterate and add them to the log object only if they have a value.
+        for field in optional_fields:
+            value = getattr(record, field, None)
+            if value is not None:
+                log_object[field] = value
 
         # Add extra context from the user if it exists
         if hasattr(record, "extra_data") and record.extra_data:
