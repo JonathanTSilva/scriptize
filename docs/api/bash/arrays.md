@@ -360,13 +360,13 @@ Sorts an array in reverse alphabetical and numerical order (z-a, 9-0).
 local input=("c" "b" "4" "1" "2" "3" "a")
 _reverseSortArray_ "${input[@]}"
 # Output:
-# c
-# b
-# a
-# 4
-# 3
-# 2
-# 1
+> c
+> b
+> a
+> 4
+> 3
+> 2
+> 1
 ```
 
 #### Arguments
@@ -445,13 +445,13 @@ Sorts an array in standard alphabetical and numerical order (0-9, a-z).
 local input=("c" "b" "4" "1" "2" "3" "a")
 _sortArray_ "${input[@]}"
 # Output:
-# 1
-# 2
-# 3
-# 4
-# a
-# b
-# c
+> 1
+> 2
+> 3
+> 4
+> a
+> b
+> c
 ```
 
 #### Arguments
@@ -465,4 +465,3 @@ _sortArray_ "${input[@]}"
 #### See also
 
 - [labbots/bash-utility](https://github.com/labbots/bash-utility)
-
