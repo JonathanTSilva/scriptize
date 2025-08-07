@@ -9,6 +9,7 @@ to the screen and to a log file. It supports multiple alert levels,
 color-coded output, and automatic detection of terminal capabilities.
 
 Global variables used by this library:
+
 - QUIET:    (true/false) Suppresses all screen output if true.
 - VERBOSE:  (true/false) Enables DEBUG level messages on screen if true.
 - LOGLEVEL: (string) Sets the logging verbosity (e.g., ERROR, INFO, DEBUG).
@@ -39,7 +40,7 @@ Global variables used by this library:
 
 ### `_setColors_` {#setcolors}
 
-Sets global color variables for use52 in alerts.
+Sets global color variables for use in alerts.
 It auto-detects if the terminal supports 256 colors and falls back gracefully.
 
 #### Example
@@ -287,4 +288,3 @@ _columns_ -b "Status" "All systems are operational and running at peak performan
 #### Output on stdout
 
 - The formatted two-column output.
-
