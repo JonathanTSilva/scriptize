@@ -7,6 +7,7 @@
 #   color-coded output, and automatic detection of terminal capabilities.
 #
 #   Global variables used by this library:
+#
 #     - QUIET:    (true/false) Suppresses all screen output if true.
 #     - VERBOSE:  (true/false) Enables DEBUG level messages on screen if true.
 #     - LOGLEVEL: (string) Sets the logging verbosity (e.g., ERROR, INFO, DEBUG).
@@ -16,7 +17,7 @@
 #=============================================================================
 # shellcheck disable=SC2034,SC2154
 
-# @description Sets global color variables for use52 in alerts.
+# @description Sets global color variables for use in alerts.
 #   It auto-detects if the terminal supports 256 colors and falls back gracefully.
 #
 # @example
@@ -29,7 +30,10 @@ _setColors_() {
         reverse=$(tput rev)
         reset=$(tput sgr0)
 
-        if [[ $(tput colors) -ge 256 ]] >/dev/null 2>&1; then
+        # Check for 256 color support
+        local colors
+        colors=$(tput colors 2>/dev/null)
+        if [[ -n "${colors}" && ${colors} -ge 256 ]]; then
             white=$(tput setaf 231)
             blue=$(tput setaf 38)
             yellow=$(tput setaf 11)
@@ -99,21 +103,21 @@ _alert_() {
 
     if [[ ${_alertType} =~ ^(error|fatal) ]]; then
         _color="${bold}${red}"
-    elif [ "${_alertType}" == "info" ]; then
+    elif [[ "${_alertType}" == "info" ]]; then
         _color="${gray}"
-    elif [ "${_alertType}" == "warning" ]; then
+    elif [[ "${_alertType}" == "warning" ]]; then
         _color="${red}"
-    elif [ "${_alertType}" == "success" ]; then
+    elif [[ "${_alertType}" == "success" ]]; then
         _color="${green}"
-    elif [ "${_alertType}" == "debug" ]; then
+    elif [[ "${_alertType}" == "debug" ]]; then
         _color="${purple}"
-    elif [ "${_alertType}" == "header" ]; then
+    elif [[ "${_alertType}" == "header" ]]; then
         _color="${bold}${white}${underline}"
-    elif [ "${_alertType}" == "notice" ]; then
+    elif [[ "${_alertType}" == "notice" ]]; then
         _color="${bold}"
-    elif [ "${_alertType}" == "input" ]; then
+    elif [[ "${_alertType}" == "input" ]]; then
         _color="${bold}${underline}"
-    elif [ "${_alertType}" = "dryrun" ]; then
+    elif [[ "${_alertType}" == "dryrun" ]]; then
         _color="${blue}"
     else
         _color=""
@@ -139,17 +143,26 @@ _alert_() {
     _writeToLog_() {
         [[ ${_alertType} == "input" ]] && return 0
         [[ ${LOGLEVEL} =~ (off|OFF|Off) ]] && return 0
-        if [ -z "${LOGFILE:-}" ]; then
-            LOGFILE="$(pwd)/$(basename "$0").log"
+        if [[ -z "${LOGFILE:-}" ]]; then
+            local _pwd
+            _pwd=$(pwd)
+            LOGFILE="${_pwd}/$(basename "$0").log"
         fi
-        [ ! -d "$(dirname "${LOGFILE}")" ] && mkdir -p "$(dirname "${LOGFILE}")"
+
+        local _log_dir
+        _log_dir=$(dirname "${LOGFILE}")
+        [[ ! -d "${_log_dir}" ]] && mkdir -p "${_log_dir}"
         [[ ! -f ${LOGFILE} ]] && touch "${LOGFILE}"
 
         # Don't use colors in logs
         local _cleanmessage
         _cleanmessage="$(printf "%s" "${_message}" | sed -E 's/(\x1b)?\[(([0-9]{1,2})(;[0-9]{1,3}){0,2})?[mGK]//g')"
+
         # Print message to log file
-        printf "%s [%7s] %s %s\n" "$(date +"%b %d %R:%S")" "${_alertType}" "[$(/bin/hostname)]" "${_cleanmessage}" >>"${LOGFILE}"
+        local _timestamp _hostname
+        _timestamp=$(date +"%b %d %R:%S")
+        _hostname=$(/bin/hostname)
+        printf "%s [%7s] %s %s\n" "${_timestamp}" "${_alertType}" "[${_hostname}]" "${_cleanmessage}" >>"${LOGFILE}"
     }
 
     # Write specified log level data to logfile
@@ -378,29 +391,36 @@ _columns_() {
 
     local _leftColumnWidth="$((_leftColumnWidth - _leftIndent))"
 
-    if [ "$(tput cols)" -gt 180 ]; then
+    local _term_cols
+    _term_cols=$(tput cols)
+
+    if [[ "${_term_cols}" -gt 180 ]]; then
         _rightIndent=110
-    elif [ "$(tput cols)" -gt 160 ]; then
+    elif [[ "${_term_cols}" -gt 160 ]]; then
         _rightIndent=90
-    elif [ "$(tput cols)" -gt 130 ]; then
+    elif [[ "${_term_cols}" -gt 130 ]]; then
         _rightIndent=60
-    elif [ "$(tput cols)" -gt 120 ]; then
+    elif [[ "${_term_cols}" -gt 120 ]]; then
         _rightIndent=50
-    elif [ "$(tput cols)" -gt 110 ]; then
+    elif [[ "${_term_cols}" -gt 110 ]]; then
         _rightIndent=40
-    elif [ "$(tput cols)" -gt 100 ]; then
+    elif [[ "${_term_cols}" -gt 100 ]]; then
         _rightIndent=30
-    elif [ "$(tput cols)" -gt 90 ]; then
+    elif [[ "${_term_cols}" -gt 90 ]]; then
         _rightIndent=20
-    elif [ "$(tput cols)" -gt 80 ]; then
+    elif [[ "${_term_cols}" -gt 80 ]]; then
         _rightIndent=10
     else
         _rightIndent=0
     fi
 
-    local _rightWrapLength=$(($(tput cols) - _leftColumnWidth - _leftIndent - _rightIndent))
+    local _rightWrapLength
+    _rightWrapLength=$(("$(tput cols)" - _leftColumnWidth - _leftIndent - _rightIndent))
 
     local _first_line=0
+    local _folded_value
+    _folded_value=$(fold -w "${_rightWrapLength}" -s <<<"${_value}")
+
     while read -r _line; do
         if [[ ${_first_line} -eq 0 ]]; then
             _first_line=1
@@ -408,5 +428,5 @@ _columns_() {
             _key=" "
         fi
         printf "%-${_leftIndent}s${_style}%-${_leftColumnWidth}b${reset} %b\n" "" "${_key}${reset}" "${_line}"
-    done <<<"$(fold -w${_rightWrapLength} -s <<<"${_value}")"
+    done <<<"${_folded_value}"
 }
