@@ -318,7 +318,7 @@ _inArray_() {
 #
 # @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _isEmptyArray_() {
-    [ ${#@} -eq 0 ]
+    [[ ${#@} -eq 0 ]]
 }
 
 # @description Joins array elements into a single string with a specified separator.
@@ -380,20 +380,22 @@ _mergeArrays_() {
 #   local input=("c" "b" "4" "1" "2" "3" "a")
 #   _reverseSortArray_ "${input[@]}"
 #   # Output:
-#   # c
-#   # b
-#   # a
-#   # 4
-#   # 3
-#   # 2
-#   # 1
+#   > c
+#   > b
+#   > a
+#   > 4
+#   > 3
+#   > 2
+#   > 1
 #
 # @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _reverseSortArray_() {
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     declare -a _array=("$@")
     declare -a _sortedArray
-    mapfile -t _sortedArray < <(printf '%s\n' "${_array[@]}" | sort -r)
+    local _sorted_output
+    _sorted_output=$(printf '%s\n' "${_array[@]}" | sort -r)
+    mapfile -t _sortedArray <<< "${_sorted_output}"
     printf "%s\n" "${_sortedArray[@]}"
 }
 
@@ -472,19 +474,21 @@ _setDiff_() {
 #   local input=("c" "b" "4" "1" "2" "3" "a")
 #   _sortArray_ "${input[@]}"
 #   # Output:
-#   # 1
-#   # 2
-#   # 3
-#   # 4
-#   # a
-#   # b
-#   # c
+#   > 1
+#   > 2
+#   > 3
+#   > 4
+#   > a
+#   > b
+#   > c
 #
 # @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _sortArray_() {
     [[ $# -eq 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
     declare -a _array=("$@")
     declare -a _sortedArray
-    mapfile -t _sortedArray < <(printf '%s\n' "${_array[@]}" | sort)
+    local _sorted_output
+    _sorted_output=$(printf '%s\n' "${_array[@]}" | sort)
+    mapfile -t _sortedArray <<< "${_sorted_output}"
     printf "%s\n" "${_sortedArray[@]}"
 }
