@@ -4,10 +4,10 @@ A utility library for common validation and check functions.
 
 ## Overview
 
-This script provides a robust collection of functions to validate common data
-types and environmental states. It includes checks for commands, data formats
-(like IP addresses and emails), file system objects, and system states
-(like internet connectivity and root access).
+This script provides a robust collection of functions to validate common
+data types and environmental states. It includes checks for commands, data
+formats (like IP addresses and emails), file system objects, and system
+states (like internet connectivity and root access).
 
 ## Index
 
@@ -406,4 +406,3 @@ _isIPv6_ "not-an-ip" # returns 1
 
 - **0**: If the string is a valid IPv6 address.
 - **1**: If the string is not a valid IPv6 address.
-
