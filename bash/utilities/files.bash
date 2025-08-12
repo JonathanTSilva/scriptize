@@ -61,7 +61,7 @@ _backupFile_() {
     declare -f _execute_ &>/dev/null || fatal "_backupFile_ needs function _execute_"
     declare -f _createUniqueFilename_ &>/dev/null || fatal "_backupFile_ needs function _createUniqueFilename_"
 
-    [ ! -e "${_fileToBackup}" ] &&
+    [[ ! -e "${_fileToBackup}" ]] &&
         {
             debug "Source '${_fileToBackup}' not found"
             return 1
@@ -69,7 +69,7 @@ _backupFile_() {
 
     if [[ ${_useDirectory} == true ]]; then
 
-        [ ! -d "${_backupDir}" ] &&
+        [[ ! -d "${_backupDir}" ]] &&
             _execute_ "mkdir -p \"${_backupDir}\"" "Creating backup directory"
 
         _newFilename="$(_createUniqueFilename_ "${_backupDir}/${_fileToBackup#.}")"
@@ -138,7 +138,7 @@ _createUniqueFilename_() {
     local i
 
     # Find directories with realpath if input is an actual file
-    if [ -e "${_fullFile}" ]; then
+    if [[ -e "${_fullFile}" ]]; then
         _fullFile="$(realpath "${_fullFile}")"
     fi
 
@@ -176,9 +176,9 @@ _createUniqueFilename_() {
 
     _newFilename="${_filePath}/${_originalFile}${_extension:-}"
 
-    if [ -e "${_newFilename}" ]; then
+    if [[ -e "${_newFilename}" ]]; then
         _num=1
-        if [ "${_internalInteger}" = true ]; then
+        if [[ "${_internalInteger}" == true ]]; then
             while [[ -e "${_filePath}/${_originalFile}${_spacer}${_num}${_extension:-}" ]]; do
                 ((_num++))
             done
@@ -223,9 +223,9 @@ _decryptFile_() {
         fatal "openssl not found"
     fi
 
-    [ ! -f "${_fileToDecrypt}" ] && return 1
+    [[ ! -f "${_fileToDecrypt}" ]] && return 1
 
-    if [ -z "${PASS:-}" ]; then
+    if [[ -z "${PASS:-}" ]]; then
         _execute_ "openssl enc -aes-256-cbc -d -in \"${_fileToDecrypt}\" -out \"${_decryptedFile}\"" "Decrypt ${_fileToDecrypt}"
     else
         _execute_ "openssl enc -aes-256-cbc -d -in \"${_fileToDecrypt}\" -out \"${_decryptedFile}\" -k \"${PASS}\"" "Decrypt ${_fileToDecrypt}"
@@ -251,7 +251,7 @@ _encryptFile_() {
 
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
-    [ ! -f "${_fileToEncrypt}" ] && return 1
+    [[ ! -f "${_fileToEncrypt}" ]] && return 1
 
     declare -f _execute_ &>/dev/null || fatal "${FUNCNAME[0]} needs function _execute_"
 
@@ -259,7 +259,7 @@ _encryptFile_() {
         fatal "openssl not found"
     fi
 
-    if [ -z "${PASS:-}" ]; then
+    if [[ -z "${PASS:-}" ]]; then
         _execute_ "openssl enc -aes-256-cbc -salt -in \"${_fileToEncrypt}\" -out \"${_encryptedFile}\"" "Encrypt ${_fileToEncrypt}"
     else
         _execute_ "openssl enc -aes-256-cbc -salt -in \"${_fileToEncrypt}\" -out \"${_encryptedFile}\" -k \"${PASS}\"" "Encrypt ${_fileToEncrypt}"
@@ -285,7 +285,7 @@ _extractArchive_() {
 
     [[ ${2:-} == "v" ]] && _vv="v"
 
-    if [ -f "$1" ]; then
+    if [[ -f "$1" ]]; then
         case "$1" in
         *.tar.bz2 | *.tbz | *.tbz2) tar "x${_vv}jf" "$1" ;;
         *.tar.gz | *.tgz) tar "x${_vv}zf" "$1" ;;
@@ -307,7 +307,11 @@ _extractArchive_() {
         *.pax) pax -r -f "$1" ;;
         *.pkg) pkgutil --expand "$1" "${1:0:-4}" ;;
         *.rar) unrar x "$1" ;;
-        *.rpm) rpm2cpio "$1" | cpio -idm"${_vv}" ;;
+        *.rpm)
+            local _rpm_output
+            _rpm_output=$(rpm2cpio "$1")
+            printf "%s\n" "${_rpm_output}" | cpio -idm"${_vv}"
+            ;;
         *.tar) tar "x${_vv}f" "$1" ;;
         *.txz)
             mv "$1" "${1:0:-4}.tar.xz"
@@ -420,8 +424,10 @@ _filePath_() {
 
     local _tmp=${1}
 
-    if [ -e "${_tmp}" ]; then
-        _tmp="$(dirname "$(realpath "${_tmp}")")"
+    if [[ -e "${_tmp}" ]]; then
+        local _realpath
+        _realpath=$(realpath "${_tmp}")
+        _tmp="$(dirname "${_realpath}")"
     else
         [[ ${_tmp} != *[!/]* ]] && { printf '/\n' && return; }
         _tmp="${_tmp%%"${_tmp##*[!/]}"}"
@@ -492,17 +498,22 @@ _listFiles_() {
     local _directory="${3:-.}"
     local _fileMatch
     declare -a _matchedFiles=()
+    local _find_output
 
     case "${_searchType}" in
     [Gg]*)
+        _find_output=$(find "${_directory}" -maxdepth 1 -iname "${_pattern}" -type f)
+        _sorted_output=$(printf "%s\n" "${_find_output}" | sort) || true
         while read -r _fileMatch; do
             _matchedFiles+=("$(realpath "${_fileMatch}")")
-        done < <(find "${_directory}" -maxdepth 1 -iname "${_pattern}" -type f | sort)
+        done <<<"${_sorted_output}"
         ;;
     [Rr]*)
+        _find_output=$(find "${_directory}" -maxdepth 1 -regextype posix-extended -iregex "${_pattern}" -type f)
+        _sorted_output=$(printf "%s\n" "${_find_output}" | sort) || true
         while read -r _fileMatch; do
             _matchedFiles+=("$(realpath "${_fileMatch}")")
-        done < <(find "${_directory}" -maxdepth 1 -regextype posix-extended -iregex "${_pattern}" -type f | sort)
+        done <<<"${_sorted_output}"
         ;;
     *)
         fatal "_listFiles_: Could not determine if search was glob or regex"
@@ -571,24 +582,24 @@ _makeSymlink_() {
     _destinationFile="${_destinationFile/\~/${HOME}}"
     _sourceFile="${_sourceFile/\~/${HOME}}"
 
-    [ ! -e "${_sourceFile}" ] &&
+    [[ ! -e "${_sourceFile}" ]] &&
         {
             error "'${_sourceFile}' not found"
             return 1
         }
-    [ -z "${_destinationFile}" ] &&
+    [[ -z "${_destinationFile}" ]] &&
         {
             error "'${_destinationFile}' not specified"
             return 1
         }
 
     # Create destination directory if needed
-    [ ! -d "${_destinationFile%/*}" ] &&
+    [[ ! -d "${_destinationFile%/*}" ]] &&
         _execute_ "mkdir -p \"${_destinationFile%/*}\""
 
-    if [ ! -e "${_destinationFile}" ]; then
+    if [[ ! -e "${_destinationFile}" ]]; then
         _execute_ "ln -fs \"${_sourceFile}\" \"${_destinationFile}\"" "symlink ${_sourceFile} → ${_destinationFile}"
-    elif [ -h "${_destinationFile}" ]; then
+    elif [[ -h "${_destinationFile}" ]]; then
         _originalFile="$(realpath "${_destinationFile}")"
 
         [[ ${_originalFile} == "${_sourceFile}" ]] && {
@@ -613,7 +624,7 @@ _makeSymlink_() {
             fi
         fi
         _execute_ "ln -fs \"${_sourceFile}\" \"${_destinationFile}\"" "symlink ${_sourceFile} → ${_destinationFile}"
-    elif [ -e "${_destinationFile}" ]; then
+    elif [[ -e "${_destinationFile}" ]]; then
         if [[ ${_backupOriginal} == true ]]; then
             _backupFile_ "${_destinationFile}"
         fi
@@ -658,16 +669,18 @@ _parseYAML_() {
     local _yamlFile="${1}"
     local _prefix="${2:-}"
 
-    [ ! -s "${_yamlFile}" ] && return 1
+    [[ ! -s "${_yamlFile}" ]] && return 1
 
     local _s='[[:space:]]*'
     local _w='[a-zA-Z0-9_]*'
     local _fs
     _fs="$(printf @ | tr @ '\034')"
 
-    sed -ne "s|^\(${_s}\)\(${_w}\)${_s}:${_s}\"\(.*\)\"${_s}\$|\1${_fs}\2${_fs}\3|p" \
-        -e "s|^\(${_s}\)\(${_w}\)${_s}[:-]${_s}\(.*\)${_s}\$|\1${_fs}\2${_fs}\3|p" "${_yamlFile}" |
-        awk -F"${_fs}" '{
+    local _sed_output _awk_output _parsed_yaml
+    _sed_output=$(sed -ne "s|^\(${_s}\)\(${_w}\)${_s}:${_s}\"\(.*\)\"${_s}\$|\1${_fs}\2${_fs}\3|p" \
+        -e "s|^\(${_s}\)\(${_w}\)${_s}[:-]${_s}\(.*\)${_s}\$|\1${_fs}\2${_fs}\3|p" "${_yamlFile}")
+
+    _awk_output=$(printf "%s\n" "${_sed_output}" | awk -F"${_fs}" '{
     indent = length($1)/2;
     if (length($2) == 0) { conj[indent]="+";} else {conj[indent]="";}
     vname[indent] = $2;
@@ -676,7 +689,12 @@ _parseYAML_() {
             vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
             printf("%s%s%s%s=(\"%s\")\n", "'"${_prefix}"'",vn, $2, conj[indent-1],$3);
     }
-  }' | sed 's/__=/+=/g' | sed 's/_=/+=/g' | sed 's/[[:space:]]*#.*"/"/g' | sed 's/=("--")//g'
+  }')
+    _parsed_yaml=$(printf "%s\n" "${_awk_output}" | sed 's/__=/+=/g')
+    _parsed_yaml=$(printf "%s\n" "${_parsed_yaml}" | sed 's/_=/+=/g')
+    _parsed_yaml=$(printf "%s\n" "${_parsed_yaml}" | sed 's/[[:space:]]*#.*"/"/g')
+    _parsed_yaml=$(printf "%s\n" "${_parsed_yaml}" | sed 's/=("--")//g')
+    printf "%s\n" "${_parsed_yaml}"
 }
 
 # @description Prints the block of text from a file that is between two regex patterns.
@@ -718,33 +736,43 @@ _printFileBetween_() (
     local _endRegex="${2}"
     local _input="${3}"
     local _output
+    local _sed_output
+    local _intermediate_output
 
     if [[ ${_removeLines} == true ]]; then
         if [[ ${_greedy} == true ]]; then
             if [[ ${_caseInsensitive} == true ]]; then
-                _output="$(sed -nE "/${_startRegex}/I,/${_endRegex}/Ip" "${_input}" | sed -n '2,$p' | sed '$d')"
+                _sed_output=$(sed -nE "/${_startRegex}/I,/${_endRegex}/Ip" "${_input}")
+                _intermediate_output=$(printf "%s\n" "${_sed_output}" | sed -n '2,$p')
+                _output=$(printf "%s\n" "${_intermediate_output}" | sed '$d')
             else
-                _output="$(sed -nE "/${_startRegex}/,/${_endRegex}/p" "${_input}" | sed -n '2,$p' | sed '$d')"
+                _sed_output=$(sed -nE "/${_startRegex}/,/${_endRegex}/p" "${_input}")
+                _intermediate_output=$(printf "%s\n" "${_sed_output}" | sed -n '2,$p')
+                _output=$(printf "%s\n" "${_intermediate_output}" | sed '$d')
             fi
         else
             if [[ ${_caseInsensitive} == true ]]; then
-                _output="$(sed -nE "/${_startRegex}/I,/${_endRegex}/I{p;/${_endRegex}/Iq}" "${_input}" | sed -n '2,$p' | sed '$d')"
+                _sed_output=$(sed -nE "/${_startRegex}/I,/${_endRegex}/I{p;/${_endRegex}/Iq}" "${_input}")
+                _intermediate_output=$(printf "%s\n" "${_sed_output}" | sed -n '2,$p')
+                _output=$(printf "%s\n" "${_intermediate_output}" | sed '$d')
             else
-                _output="$(sed -nE "/${_startRegex}/,/${_endRegex}/{p;/${_endRegex}/q}" "${_input}" | sed -n '2,$p' | sed '$d')"
+                _sed_output=$(sed -nE "/${_startRegex}/,/${_endRegex}/{p;/${_endRegex}/q}" "${_input}")
+                _intermediate_output=$(printf "%s\n" "${_sed_output}" | sed -n '2,$p')
+                _output=$(printf "%s\n" "${_intermediate_output}" | sed '$d')
             fi
         fi
     else
         if [[ ${_greedy} == true ]]; then
             if [[ ${_caseInsensitive} == true ]]; then
-                _output="$(sed -nE "/${_startRegex}/I,/${_endRegex}/Ip" "${_input}")"
+                _output=$(sed -nE "/${_startRegex}/I,/${_endRegex}/Ip" "${_input}")
             else
-                _output="$(sed -nE "/${_startRegex}/,/${_endRegex}/p" "${_input}")"
+                _output=$(sed -nE "/${_startRegex}/,/${_endRegex}/p" "${_input}")
             fi
         else
             if [[ ${_caseInsensitive} == true ]]; then
-                _output="$(sed -nE "/${_startRegex}/I,/${_endRegex}/I{p;/${_endRegex}/Iq}" "${_input}")"
+                _output=$(sed -nE "/${_startRegex}/I,/${_endRegex}/I{p;/${_endRegex}/Iq}" "${_input}")
             else
-                _output="$(sed -nE "/${_startRegex}/,/${_endRegex}/{p;/${_endRegex}/q}" "${_input}")"
+                _output=$(sed -nE "/${_startRegex}/,/${_endRegex}/{p;/${_endRegex}/q}" "${_input}")
             fi
         fi
     fi
@@ -773,7 +801,7 @@ _randomLineFromFile_() {
     local _fileToRead="$1"
     local _rnd
 
-    [ ! -f "${_fileToRead}" ] &&
+    [[ ! -f "${_fileToRead}" ]] &&
         {
             error "'${_fileToRead}' not found"
             return 1
@@ -799,7 +827,7 @@ _readFile_() {
     local _result
     local _fileToRead="$1"
 
-    [ ! -f "${_fileToRead}" ] &&
+    [[ ! -f "${_fileToRead}" ]] &&
         {
             error "'${_fileToRead}' not found"
             return 1
@@ -825,7 +853,7 @@ _sourceFile_() {
 
     local _fileToSource="$1"
 
-    [ ! -f "${_fileToSource}" ] && fatal "Attempted to source '${_fileToSource}'. Not found"
+    [[ ! -f "${_fileToSource}" ]] && fatal "Attempted to source '${_fileToSource}'. Not found"
     # shellcheck disable=SC1090
     if source "${_fileToSource}"; then
         return 0
