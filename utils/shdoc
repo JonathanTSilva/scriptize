@@ -197,7 +197,7 @@ function render_toc_link(text) {
     }
 
     url = generate_anchor(text)
-    
+
     return "[`" text "`](#" url ")"
 }
 
@@ -419,13 +419,13 @@ function render_docblock_list(docblock, docblock_name, title) {
 #   long_option_regex = "--[[:alnum:]][[:alnum:]-]*((=|[[:blank:]]+)<[^>]+>)?"
 #   pipe_separator_regex = "([[:blank:]]*\\|?[[:blank:]]+)"
 #   description_regex = "([^[:blank:]|<-].*)?"
-#   
+#
 #   # Build regex matching all options
 #   short_or_long_option_regex = sprintf("(%s|%s)", short_option_regex, long_option_regex)
-#   
+#
 #   # Build regex matching multiple options separated by spaces or pipe.
 #   all_options_regex = sprintf("(%s%s)+", short_or_long_option_regex, pipe_separator_regex)
-#   
+#
 #   # Build final regex.
 #   optional_arg_regex = sprintf("^(%s)%s$", all_options_regex, description_regex)
 #   ```
@@ -435,7 +435,7 @@ function render_docblock_list(docblock, docblock_name, title) {
 #   `^((?:(?:-[[:alnum:]](?:[[:blank:]]*<[^>]+>)?|--[[:alnum:]][[:alnum:]-]*(?:(?:=|[[:blank:]]+)<[^>]+>)?)(?:[[:blank:]]*\|?[[:blank:]]+))+)([^[:blank:]|<-].*)?$`
 #
 # @param text   The text to process as an @option entry.
-# 
+#
 # @set dockblock["option"] A docblock for correctly formated options.
 # @set dockblock["option-bad"] A docblock for badly formated options.
 function process_at_option(text) {
@@ -632,12 +632,12 @@ function debug(msg) {
 # Detect and store shellcheck disable directives
 /^[[:space:]]*# shellcheck disable=/ {
     debug("→ found shellcheck directive")
-    
+
     line = $0
     sub(/^[[:space:]]*# shellcheck disable=/, "", line)
-    
+
     gsub(/,/, " ", line)
-    
+
     n = split(line, codes, " ")
     for (i=1; i<=n; i++) {
         if (codes[i] != "") {
@@ -750,7 +750,7 @@ in_example {
 # Select @arg lines with content.
 /^[[:blank:]]*#[[:blank:]]+@arg[[:blank:]]+[^[:blank:]]/ {
     debug("→ @arg")
-    
+
     arg_text = $0
 
     # Remove '# @arg ' tag.
@@ -832,9 +832,9 @@ multiple_line_docblock_name {
     # Check if current line indentation does match the previous line docblock item.
     if ($0 ~ multiple_line_identation_regex ) {
         debug("→ @" multiple_line_docblock_name " - new line")
-        
+
         # Current line has the same indentation as the stderr section.
-        
+
         # Remove indentation and trailing spaces.
         sub(/^[[:space:]]*#[[:space:]]+/, "")
         sub(/[[:space:]]+$/, "")
@@ -941,23 +941,23 @@ END {
         print render("h1", file_title)
 
         if (file_brief != "") {
-            print file_brief "\n" 
+            print file_brief "\n"
         }
 
         if (file_description != "") {
             print render("h2", "Overview")
-            print file_description "\n" 
+            print file_description "\n"
         }
     }
 
     if (toc != "") {
         print render("h2", "Index")
-        print toc "\n" 
+        print toc "\n"
     }
 
     if (length(shellcheck_codes) > 0) {
         print render("h2", "Shellcheck")
-        
+
         disable_list = ""
         asorti(shellcheck_codes, sorted_codes) # Sort for consistent order
         for (i=1; i<=length(sorted_codes); i++) {

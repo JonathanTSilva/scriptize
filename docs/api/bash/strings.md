@@ -402,3 +402,4 @@ upper_var=$(_upper_ <<<"some text")
 #### Output on stdout
 
 - The uppercased string.
+

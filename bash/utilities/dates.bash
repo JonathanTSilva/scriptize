@@ -81,7 +81,9 @@ _dateUnixTimestamp_() {
 #
 # @arg $1 string (required) The input date string (e.g., "Jan 10, 2019").
 # @arg $2 string (optional) The output format for `date`. Defaults to `%F` (YYYY-MM-DD).
+#
 #   Examples:
+#
 #     - `%F` -> YYYY-MM-DD
 #     - `%D` -> MM/DD/YY
 #     - `%a` -> Mon

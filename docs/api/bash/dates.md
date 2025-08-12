@@ -259,3 +259,4 @@ _toSeconds_ 1 2 3      # -> 3723
 #### Output on stdout
 
 - The total number of seconds.
+

@@ -110,3 +110,4 @@ _homebrewPath_
 #### See also
 
 - [`_setPATH_()`](#setpath)
+

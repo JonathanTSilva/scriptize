@@ -406,3 +406,4 @@ _isIPv6_ "not-an-ip" # returns 1
 
 - **0**: If the string is a valid IPv6 address.
 - **1**: If the string is not a valid IPv6 address.
+
