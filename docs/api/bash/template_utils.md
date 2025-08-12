@@ -118,4 +118,3 @@ _setPATH_ "/usr/local/bin" "${HOME}/.local/bin"
 
 - **0**: On success.
 - **1**: If `-x` is used and a directory does not exist.
-

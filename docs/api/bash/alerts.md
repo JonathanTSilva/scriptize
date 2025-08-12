@@ -288,4 +288,3 @@ _columns_ -b "Status" "All systems are operational and running at peak performan
 #### Output on stdout
 
 - The formatted two-column output.
-

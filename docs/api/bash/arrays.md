@@ -465,4 +465,3 @@ _sortArray_ "${input[@]}"
 #### See also
 
 - [labbots/bash-utility](https://github.com/labbots/bash-utility)
-
