@@ -2,10 +2,10 @@
 # @file checks.bash
 # @brief A utility library for common validation and check functions.
 # @description
-#   This script provides a robust collection of functions to validate common data
-#   types and environmental states. It includes checks for commands, data formats
-#   (like IP addresses and emails), file system objects, and system states
-#   (like internet connectivity and root access).
+#   This script provides a robust collection of functions to validate common
+#   data types and environmental states. It includes checks for commands, data
+#   formats (like IP addresses and emails), file system objects, and system
+#   states (like internet connectivity and root access).
 #=============================================================================
 
 # @description Checks if a command or binary exists in the system's PATH.
@@ -308,7 +308,9 @@ _rootAvailable_() {
     elif [[ -z ${1-} ]]; then
         debug 'Sudo: Updating cached credentials ...'
         if sudo -v; then
-            if [[ $(sudo -H -- "${BASH}" -c 'printf "%s" "$EUID"') -eq 0 ]]; then
+            local _sudo_euid
+            _sudo_euid=$(sudo -H -- "${BASH}" -c 'printf "%s" "$EUID"')
+            if [[ ${_sudo_euid} -eq 0 ]]; then
                 _superuser=true
             else
                 _superuser=false
