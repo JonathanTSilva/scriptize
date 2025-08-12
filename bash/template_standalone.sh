@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# TODO: Edit this file docstrings in the shdoc model
 
 _mainScript_() {
 
@@ -48,7 +49,9 @@ _setColors_() {
         reverse=$(tput rev)
         reset=$(tput sgr0)
 
-        if [[ $(tput colors) -ge 256 ]] >/dev/null 2>&1; then
+        local colors
+        colors=$(tput colors 2>/dev/null)
+        if [[ -n "${colors}" && ${colors} -ge 256 ]]; then
             white=$(tput setaf 231)
             blue=$(tput setaf 38)
             yellow=$(tput setaf 11)
@@ -107,37 +110,41 @@ _alert_() {
     [[ $# -lt 2 ]] && fatal 'Missing required argument to _alert_'
 
     if [[ -n ${_line} && ${_alertType} =~ ^(fatal|error) && ${FUNCNAME[2]} != "_trapCleanup_" ]]; then
-        _message="${_message} ${gray}(line: ${_line}) $(_printFuncStack_)"
+        local _func_stack_string
+        _func_stack_string=$(_printFuncStack_)
+        _message="${_message} ${gray}(line: ${_line}) ${_func_stack_string}"
     elif [[ -n ${_line} && ${FUNCNAME[2]} != "_trapCleanup_" ]]; then
         _message="${_message} ${gray}(line: ${_line})"
     elif [[ -z ${_line} && ${_alertType} =~ ^(fatal|error) && ${FUNCNAME[2]} != "_trapCleanup_" ]]; then
-        _message="${_message} ${gray}$(_printFuncStack_)"
+        local _func_stack_string
+        _func_stack_string=$(_printFuncStack_)
+        _message="${_message} ${gray}${_func_stack_string}"
     fi
 
     if [[ ${_alertType} =~ ^(error|fatal) ]]; then
         _color="${bold}${red}"
-    elif [ "${_alertType}" == "info" ]; then
+    elif [[ "${_alertType}" == "info" ]]; then
         _color="${gray}"
-    elif [ "${_alertType}" == "warning" ]; then
+    elif [[ "${_alertType}" == "warning" ]]; then
         _color="${red}"
-    elif [ "${_alertType}" == "success" ]; then
+    elif [[ "${_alertType}" == "success" ]]; then
         _color="${green}"
-    elif [ "${_alertType}" == "debug" ]; then
+    elif [[ "${_alertType}" == "debug" ]]; then
         _color="${purple}"
-    elif [ "${_alertType}" == "header" ]; then
+    elif [[ "${_alertType}" == "header" ]]; then
         _color="${bold}${white}${underline}"
-    elif [ "${_alertType}" == "notice" ]; then
+    elif [[ "${_alertType}" == "notice" ]]; then
         _color="${bold}"
-    elif [ "${_alertType}" == "input" ]; then
+    elif [[ "${_alertType}" == "input" ]]; then
         _color="${bold}${underline}"
-    elif [ "${_alertType}" = "dryrun" ]; then
+    elif [[ "${_alertType}" == "dryrun" ]]; then
         _color="${blue}"
     else
         _color=""
     fi
 
     _writeToScreen_() {
-        ("${QUIET}") && return 0 # Print to console when script is not 'quiet'
+        [[ ${QUIET} == true ]] && return 0 # Print to console when script is not 'quiet'
         [[ ${VERBOSE} == false && ${_alertType} =~ ^(debug|verbose) ]] && return 0
 
         if ! [[ -t 1 || -z ${TERM:-} ]]; then # Don't use colors on non-recognized terminals
@@ -156,17 +163,24 @@ _alert_() {
     _writeToLog_() {
         [[ ${_alertType} == "input" ]] && return 0
         [[ ${LOGLEVEL} =~ (off|OFF|Off) ]] && return 0
-        if [ -z "${LOGFILE:-}" ]; then
-            LOGFILE="$(pwd)/$(basename "$0").log"
+        if [[ -z "${LOGFILE:-}" ]]; then
+            local _pwd
+            _pwd=$(pwd)
+            LOGFILE="${_pwd}/$(basename "$0").log"
         fi
-        [ ! -d "$(dirname "${LOGFILE}")" ] && mkdir -p "$(dirname "${LOGFILE}")"
+        local _log_dir
+        _log_dir=$(dirname "${LOGFILE}")
+        [[ ! -d "${_log_dir}" ]] && mkdir -p "${_log_dir}"
         [[ ! -f ${LOGFILE} ]] && touch "${LOGFILE}"
 
         # Don't use colors in logs
         local _cleanmessage
         _cleanmessage="$(printf "%s" "${_message}" | sed -E 's/(\x1b)?\[(([0-9]{1,2})(;[0-9]{1,3}){0,2})?[mGK]//g')"
         # Print message to log file
-        printf "%s [%7s] %s %s\n" "$(date +"%b %d %R:%S")" "${_alertType}" "[$(/bin/hostname)]" "${_cleanmessage}" >>"${LOGFILE}"
+        local _timestamp _hostname
+        _timestamp=$(date +"%b %d %R:%S")
+        _hostname=$(/bin/hostname)
+        printf "%s [%7s] %s %s\n" "${_timestamp}" "${_alertType}" "[${_hostname}]" "${_cleanmessage}" >>"${LOGFILE}"
     }
 
     # Write specified log level data to logfile
@@ -273,7 +287,9 @@ _safeExit_() {
     fi
 
     if [[ -n ${TMP_DIR:-} && -d ${TMP_DIR:-} ]]; then
-        if [[ ${1:-} == 1 && -n "$(ls "${TMP_DIR}")" ]]; then
+        local _ls_tmp
+        _ls_tmp=$(ls "${TMP_DIR}")
+        if [[ ${1:-} == 1 && -n "${_ls_tmp}" ]]; then
             command rm -r "${TMP_DIR}"
         else
             command rm -r "${TMP_DIR}"
@@ -315,7 +331,9 @@ _trapCleanup_() {
         _funcstack="'$(printf "%s" "${_funcstack}" | sed -E 's/ / < /g')'"
 
         if [[ ${_script##*/} == "${_sourced##*/}" ]]; then
-            fatal "${7:-} command: '${_command}' (line: ${_line}) [func: $(_printFuncStack_)]"
+            local _func_stack_string
+            _func_stack_string=$(_printFuncStack_)
+            fatal "${7:-} command: '${_command}' (line: ${_line}) [func: ${_func_stack_string}]"
         else
             fatal "${7:-} command: '${_command}' (func: ${_funcstack} called at line ${_linecallfunc} of '${_script##*/}') (line: ${_line} of '${_sourced##*/}') "
         fi
@@ -340,9 +358,9 @@ _makeTempDir_() {
     # USAGE:
     #         _makeTempDir_ "$(basename "$0")"
 
-    [ -d "${TMP_DIR:-}" ] && return 0
+    [[ -d "${TMP_DIR:-}" ]] && return 0
 
-    if [ -n "${1:-}" ]; then
+    if [[ -n "${1:-}" ]]; then
         TMP_DIR="${TMPDIR:-/tmp/}${1}.${RANDOM}.${RANDOM}.$$"
     else
         TMP_DIR="${TMPDIR:-/tmp/}$(basename "$0").${RANDOM}.${RANDOM}.${RANDOM}.$$"
@@ -424,7 +442,7 @@ _setPATH_() {
     local _newPath
 
     for _newPath in "$@"; do
-        if [ -d "${_newPath}" ]; then
+        if [[ -d "${_newPath}" ]]; then
             if ! printf "%s" "${PATH}" | grep -Eq "(^|:)${_newPath}($|:)"; then
                 if PATH="${_newPath}:${PATH}"; then
                     debug "Added '${_newPath}' to PATH"
@@ -447,21 +465,21 @@ _setPATH_() {
 
 _useGNUutils_() {
     # DESC:
-    #					Add GNU utilities to PATH to allow consistent use of sed/grep/tar/etc. on MacOS
+    #         Add GNU utilities to PATH to allow consistent use of sed/grep/tar/etc. on MacOS
     # ARGS:
-    #					None
+    #         None
     # OUTS:
-    #					0 if successful
+    #         0 if successful
     #         1 if unsuccessful
     #         PATH: Adds GNU utilities to the path
     # USAGE:
-    #					# if ! _useGNUUtils_; then exit 1; fi
+    #         # if ! _useGNUUtils_; then exit 1; fi
     # NOTES:
-    #					GNU utilities can be added to MacOS using Homebrew
+    #         GNU utilities can be added to MacOS using Homebrew
 
     ! declare -f "_setPATH_" &>/dev/null && fatal "${FUNCNAME[0]} needs function _setPATH_"
 
-    if _setPATH_ \
+    _setPATH_ \
         "/usr/local/opt/gnu-tar/libexec/gnubin" \
         "/usr/local/opt/coreutils/libexec/gnubin" \
         "/usr/local/opt/gnu-sed/libexec/gnubin" \
@@ -471,55 +489,48 @@ _useGNUutils_() {
         "/opt/homebrew/opt/gnu-sed/libexec/gnubin" \
         "/opt/homebrew/opt/grep/libexec/gnubin" \
         "/opt/homebrew/opt/coreutils/libexec/gnubin" \
-        "/opt/homebrew/opt/gnu-tar/libexec/gnubin"; then
-        return 0
-    else
-        return 1
-    fi
+        "/opt/homebrew/opt/gnu-tar/libexec/gnubin"
+    return $?
 
 }
 
 _homebrewPath_() {
     # DESC:
-    #					Add homebrew bin dir to PATH
+    #         Add homebrew bin dir to PATH
     # ARGS:
-    #					None
+    #         None
     # OUTS:
-    #					0 if successful
+    #         0 if successful
     #         1 if unsuccessful
     #         PATH: Adds homebrew bin directory to PATH
     # USAGE:
-    #					# if ! _homebrewPath_; then exit 1; fi
+    #         # if ! _homebrewPath_; then exit 1; fi
 
     ! declare -f "_setPATH_" &>/dev/null && fatal "${FUNCNAME[0]} needs function _setPATH_"
 
     if _uname=$(command -v uname); then
+        # Check if the OS is macOS ('darwin')
         if "${_uname}" | tr '[:upper:]' '[:lower:]' | grep -q 'darwin'; then
-            if _setPATH_ "/usr/local/bin" "/opt/homebrew/bin"; then
-                return 0
-            else
-                return 1
-            fi
+            _setPATH_ "/usr/local/bin" "/opt/homebrew/bin"
+            return $?
         fi
     else
-        if _setPATH_ "/usr/local/bin" "/opt/homebrew/bin"; then
-            return 0
-        else
-            return 1
-        fi
+        # Fallback if 'uname' command isn't found
+        _setPATH_ "/usr/local/bin" "/opt/homebrew/bin"
+        return $?
     fi
 }
 
 _parseOptions_() {
     # DESC:
-    #					Iterates through options passed to script and sets variables. Will break -ab into -a -b
+    #         Iterates through options passed to script and sets variables. Will break -ab into -a -b
     #         when needed and --foo=bar into --foo bar
     # ARGS:
-    #					$@ from command line
+    #         $@ from command line
     # OUTS:
-    #					Sets array 'ARGS' containing all arguments passed to script that were not parsed as options
+    #         Sets array 'ARGS' containing all arguments passed to script that were not parsed as options
     # USAGE:
-    #					_parseOptions_ "$@"
+    #         _parseOptions_ "$@"
 
     # Iterate over options
     local _optstring=h
@@ -649,29 +660,35 @@ _columns_() {
 
     local _leftColumnWidth="$((30 + _leftIndent))"
 
-    if [ "$(tput cols)" -gt 180 ]; then
+    local _term_cols
+    _term_cols=$(tput cols)
+
+    if [[ "${_term_cols}" -gt 180 ]]; then
         _rightIndent=110
-    elif [ "$(tput cols)" -gt 160 ]; then
+    elif [[ "${_term_cols}" -gt 160 ]]; then
         _rightIndent=90
-    elif [ "$(tput cols)" -gt 130 ]; then
+    elif [[ "${_term_cols}" -gt 130 ]]; then
         _rightIndent=60
-    elif [ "$(tput cols)" -gt 120 ]; then
+    elif [[ "${_term_cols}" -gt 120 ]]; then
         _rightIndent=50
-    elif [ "$(tput cols)" -gt 110 ]; then
+    elif [[ "${_term_cols}" -gt 110 ]]; then
         _rightIndent=40
-    elif [ "$(tput cols)" -gt 100 ]; then
+    elif [[ "${_term_cols}" -gt 100 ]]; then
         _rightIndent=30
-    elif [ "$(tput cols)" -gt 90 ]; then
+    elif [[ "${_term_cols}" -gt 90 ]]; then
         _rightIndent=20
-    elif [ "$(tput cols)" -gt 80 ]; then
+    elif [[ "${_term_cols}" -gt 80 ]]; then
         _rightIndent=10
     else
         _rightIndent=0
     fi
 
-    local _rightWrapLength=$(($(tput cols) - _leftColumnWidth - _leftIndent - _rightIndent))
+    local _rightWrapLength
+    _rightWrapLength=$((_term_cols - _leftColumnWidth - _leftIndent - _rightIndent))
 
     local _first_line=0
+    local _folded_output
+    _folded_output=$(fold -w "${_rightWrapLength}" -s <<<"${_value}")
     while read -r _line; do
         if [[ ${_first_line} -eq 0 ]]; then
             _first_line=1
@@ -679,7 +696,7 @@ _columns_() {
             _key=" "
         fi
         printf "%-${_leftIndent}s${_style}%-${_leftColumnWidth}b${reset} %b\n" "" "${_key}${reset}" "${_line}"
-    done <<<"$(fold -w${_rightWrapLength} -s <<<"${_value}")"
+    done <<<"${_folded_output}"
 }
 
 _usage_() {
@@ -690,13 +707,15 @@ _usage_() {
   This is a script template.  Edit this description to print help to users.
 
   ${bold}${underline}Options:${reset}
-$(_columns_ -b -- '-h, --help' "Display this help and exit" 2)
-$(_columns_ -b -- "--loglevel [LEVEL]" "One of: FATAL, ERROR (default), WARN, INFO, NOTICE, DEBUG, ALL, OFF" 2)
-$(_columns_ -b -- "--logfile [FILE]" "Full PATH to logfile.  (Default is '\${HOME}/logs/$(basename "$0").log')" 2)
-$(_columns_ -b -- "-n, --dryrun" "Non-destructive. Makes no permanent changes." 2)
-$(_columns_ -b -- "-q, --quiet" "Quiet (no output)" 2)
-$(_columns_ -b -- "-v, --verbose" "Output more information. (Items echoed to 'verbose')" 2)
-$(_columns_ -b -- "--force" "Skip all user interaction.  Implied 'Yes' to all actions." 2)
+USAGE_TEXT
+    _columns_ -b -- '-h, --help' "Display this help and exit" 2
+    _columns_ -b -- "--loglevel [LEVEL]" "One of: FATAL, ERROR (default), WARN, INFO, NOTICE, DEBUG, ALL, OFF" 2
+    _columns_ -b -- "--logfile [FILE]" "Full PATH to logfile.  (Default is '\${HOME}/logs/$(basename "$0").log')" 2
+    _columns_ -b -- "-n, --dryrun" "Non-destructive. Makes no permanent changes." 2
+    _columns_ -b -- "-q, --quiet" "Quiet (no output)" 2
+    _columns_ -b -- "-v, --verbose" "Output more information. (Items echoed to 'verbose')" 2
+    _columns_ -b -- "--force" "Skip all user interaction.  Implied 'Yes' to all actions." 2
+    cat <<USAGE_TEXT
 
   ${bold}${underline}Example Usage:${reset}
 
@@ -720,7 +739,7 @@ set -o errexit
 set -o pipefail
 
 # Confirm we have BASH greater than v4
-[ "${BASH_VERSINFO:-0}" -ge 4 ] || {
+[[ "${BASH_VERSINFO:-0}" -ge 4 ]] || {
     printf "%s\n" "ERROR: BASH_VERSINFO is '${BASH_VERSINFO:-0}'.  This script requires BASH v4 or greater."
     exit 1
 }

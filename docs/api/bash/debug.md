@@ -91,4 +91,3 @@ _printArray_ "testArray" ${LINENO}
 #### See also
 
 - [labbots/bash-utility](https://github.com/labbots/bash-utility/blob/master/src/debug.sh)
-

@@ -456,4 +456,3 @@ _yaml2json_ "config.yml" > "config.json"
 #### Output on stdout
 
 - The converted content in JSON format.
-

@@ -84,7 +84,9 @@ _trapCleanup_() {
         _funcstack="'$(printf "%s" "${_funcstack}" | sed -E 's/ / < /g')'"
 
         if [[ ${_script##*/} == "${_sourced##*/}" ]]; then
-            fatal "${7:-} command: '${_command}' (line: ${_line}) [func: $(_printFuncStack_)]"
+            local _func_stack_string
+            _func_stack_string=$(_printFuncStack_)
+            fatal "${7:-} command: '${_command}' (line: ${_line}) [func: ${_func_stack_string}]"
         else
             fatal "${7:-} command: '${_command}' (func: ${_funcstack} called at line ${_linecallfunc} of '${_script##*/}') (line: ${_line} of '${_sourced##*/}') "
         fi
@@ -120,12 +122,13 @@ _findBaseDir_() {
         _source="${BASH_SOURCE[0]}"
     fi
 
-    while [ -h "${_source}" ]; do # Resolve $SOURCE until the file is no longer a symlink
+    while [[ -h "${_source}" ]]; do # Resolve $SOURCE until the file is no longer a symlink
         _dir="$(cd -P "$(dirname "${_source}")" && pwd)"
         _source="$(readlink "${_source}")"
         [[ ${_source} != /* ]] && _source="${_dir}/${_source}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
     done
-    printf "%s\n" "$(cd -P "$(dirname "${_source}")" && pwd)"
+    _dir="$(cd -P "$(dirname "${_source}")" && pwd)"
+    printf "%s\n" "${_dir}"
 }
 
 # @description Sources all utility function files from a specified directory.
@@ -143,77 +146,77 @@ _sourceUtilities_() {
     local _utilsPath
     _utilsPath="${1}"
 
-    if [ -f "${_utilsPath}/alerts.bash" ]; then
+    if [[ -f "${_utilsPath}/alerts.bash" ]]; then
         source "${_utilsPath}/alerts.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/alerts.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/arrays.bash" ]; then
+    if [[ -f "${_utilsPath}/arrays.bash" ]]; then
         source "${_utilsPath}/arrays.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/arrays.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/checks.bash" ]; then
+    if [[ -f "${_utilsPath}/checks.bash" ]]; then
         source "${_utilsPath}/checks.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/checks.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/dates.bash" ]; then
+    if [[ -f "${_utilsPath}/dates.bash" ]]; then
         source "${_utilsPath}/dates.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/dates.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/debug.bash" ]; then
+    if [[ -f "${_utilsPath}/debug.bash" ]]; then
         source "${_utilsPath}/debug.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/debug.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/files.bash" ]; then
+    if [[ -f "${_utilsPath}/files.bash" ]]; then
         source "${_utilsPath}/files.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/files.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/macOS.bash" ]; then
+    if [[ -f "${_utilsPath}/macOS.bash" ]]; then
         source "${_utilsPath}/macOS.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/macOS.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/misc.bash" ]; then
+    if [[ -f "${_utilsPath}/misc.bash" ]]; then
         source "${_utilsPath}/misc.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/misc.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/services.bash" ]; then
+    if [[ -f "${_utilsPath}/services.bash" ]]; then
         source "${_utilsPath}/services.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/services.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/strings.bash" ]; then
+    if [[ -f "${_utilsPath}/strings.bash" ]]; then
         source "${_utilsPath}/strings.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/strings.bash not found"
         exit 1
     fi
 
-    if [ -f "${_utilsPath}/template_utils.bash" ]; then
+    if [[ -f "${_utilsPath}/template_utils.bash" ]]; then
         source "${_utilsPath}/template_utils.bash"
     else
         printf "%s\n" "ERROR: ${_utilsPath}/template_utils.bash not found"
@@ -332,13 +335,15 @@ _usage_() {
   This is a script template.  Edit this description to print help to users.
 
   ${bold}${underline}Options:${reset}
-$(_columns_ -b -- '-h, --help' "Display this help and exit" 2)
-$(_columns_ -b -- "--loglevel [LEVEL]" "One of: FATAL, ERROR (default), WARN, INFO, NOTICE, DEBUG, ALL, OFF" 2)
-$(_columns_ -b -- "--logfile [FILE]" "Full PATH to logfile.  (Default is '\${HOME}/logs/$(basename "$0").log')" 2)
-$(_columns_ -b -- "-n, --dryrun" "Non-destructive. Makes no permanent changes." 2)
-$(_columns_ -b -- "-q, --quiet" "Quiet (no output)" 2)
-$(_columns_ -b -- "-v, --verbose" "Output more information. (Items echoed to 'verbose')" 2)
-$(_columns_ -b -- "--force" "Skip all user interaction.  Implied 'Yes' to all actions." 2)
+USAGE_TEXT
+    _columns_ -b -- '-h, --help' "Display this help and exit" 2
+    _columns_ -b -- "--loglevel [LEVEL]" "One of: FATAL, ERROR (default), WARN, INFO, NOTICE, DEBUG, ALL, OFF" 2
+    _columns_ -b -- "--logfile [FILE]" "Full PATH to logfile.  (Default is '\${HOME}/logs/$(basename "$0").log')" 2
+    _columns_ -b -- "-n, --dryrun" "Non-destructive. Makes no permanent changes." 2
+    _columns_ -b -- "-q, --quiet" "Quiet (no output)" 2
+    _columns_ -b -- "-v, --verbose" "Output more information. (Items echoed to 'verbose')" 2
+    _columns_ -b -- "--force" "Skip all user interaction.  Implied 'Yes' to all actions." 2
+    cat <<USAGE_TEXT
 
   ${bold}${underline}Example Usage:${reset}
 
@@ -366,7 +371,7 @@ set -o errexit
 set -o pipefail
 
 # Confirm we have BASH version 4 or greater
-[ "${BASH_VERSINFO:-0}" -ge 4 ] || {
+[[ "${BASH_VERSINFO:-0}" -ge 4 ]] || {
     printf "%s\n" "ERROR: BASH_VERSINFO is '${BASH_VERSINFO:-0}'.  This script requires BASH v4 or greater."
     exit 1
 }
@@ -381,7 +386,8 @@ IFS=$' \n\t'
 # set -o xtrace
 
 # Source all utility functions from the 'utilities' directory
-_sourceUtilities_ "$(_findBaseDir_)/utilities"
+_base_dir="$(_findBaseDir_)"
+_sourceUtilities_ "${_base_dir}/utilities"
 
 # Initialize color constants
 _setColors_
