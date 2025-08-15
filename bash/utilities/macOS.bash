@@ -22,11 +22,11 @@
 #     echo "Running in a non-GUI environment."
 #   fi
 #
-_haveScriptableFinder_() {
+_haveScriptableFinder() {
     local _finder_pid
-    _finder_pid="$(pgrep -f /System/Library/CoreServices/Finder.app | head -n 1)"
+    _finder_pid=$(pgrep -f /System/Library/CoreServices/Finder.app | head -n 1) || true
 
-    if [[ (${_finder_pid} -gt 1) && (${STY-} == "") ]]; then
+    if [[ -n "${_finder_pid}" && ${_finder_pid} -gt 1 && -z "${STY-}" ]]; then
         return 0
     else
         return 1
@@ -87,7 +87,7 @@ GUI_INPUT_MESSAGE
 _useGNUutils_() {
     ! declare -f "_setPATH_" &>/dev/null && fatal "${FUNCNAME[0]} needs function _setPATH_"
 
-    if _setPATH_ \
+    _setPATH_ \
         "/usr/local/opt/gnu-tar/libexec/gnubin" \
         "/usr/local/opt/coreutils/libexec/gnubin" \
         "/usr/local/opt/gnu-sed/libexec/gnubin" \
@@ -97,11 +97,8 @@ _useGNUutils_() {
         "/opt/homebrew/opt/gnu-sed/libexec/gnubin" \
         "/opt/homebrew/opt/grep/libexec/gnubin" \
         "/opt/homebrew/opt/coreutils/libexec/gnubin" \
-        "/opt/homebrew/opt/gnu-tar/libexec/gnubin"; then
-        return 0
-    else
-        return 1
-    fi
+        "/opt/homebrew/opt/gnu-tar/libexec/gnubin"
+    return $?
 }
 
 # @description Prepends the Homebrew binary directory to the session `$PATH`.
@@ -123,18 +120,15 @@ _homebrewPath_() {
     ! declare -f "_setPATH_" &>/dev/null && fatal "${FUNCNAME[0]} needs function _setPATH_"
 
     if _uname=$(command -v uname); then
-        if "${_uname}" | tr '[:upper:]' '[:lower:]' | grep -q 'darwin'; then
-            if _setPATH_ "/usr/local/bin" "/opt/homebrew/bin"; then
-                return 0
-            else
-                return 1
-            fi
+        # Run the pipeline and check its exit code directly.
+        _uname_lower=$(printf "%s" "${_uname}" | tr '[:upper:]' '[:lower:]') || true
+        if printf "%s" "${_uname_lower}" | grep -q 'darwin'; then
+            _setPATH "/usr/local/bin" "/opt/homebrew/bin"
+            return $?
         fi
     else
-        if _setPATH_ "/usr/local/bin" "/opt/homebrew/bin"; then
-            return 0
-        else
-            return 1
-        fi
+        # Fallback if uname is not found
+        _setPATH "/usr/local/bin" "/opt/homebrew/bin"
+        return $?
     fi
 }

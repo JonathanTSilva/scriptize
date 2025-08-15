@@ -12,12 +12,12 @@ These functions are not portable and will fail on other operating systems like L
 
 ## Index
 
-* [`_haveScriptableFinder_`](#havescriptablefinder)
+* [`_haveScriptableFinder`](#havescriptablefinder)
 * [`_guiInput_`](#guiinput)
 * [`_useGNUutils_`](#usegnuutils)
 * [`_homebrewPath_`](#homebrewpath)
 
-### `_haveScriptableFinder_` {#havescriptablefinder}
+### `_haveScriptableFinder` {#havescriptablefinder}
 
 Determines whether the script is running in a context where the Finder is scriptable.
 This is useful for checking if a GUI interaction is possible.
