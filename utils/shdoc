@@ -972,6 +972,7 @@ END {
         print ""
     }
 
+    gsub(/[[:space:]]*$/, "", doc)
     print doc
 
 }
