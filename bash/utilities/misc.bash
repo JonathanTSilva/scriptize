@@ -33,19 +33,18 @@ _checkTerminalSize_() {
 #
 # @see [labbots/bash-utility](https://github.com/labbots/bash-utility)
 _detectOS_() {
-    local _uname
-    local _os
-    if _uname=$(command -v uname); then
-        case $("${_uname}" | tr '[:upper:]' '[:lower:]') in
+    local _uname_out
+    if command -v uname >/dev/null 2>&1; then
+        _uname_out=$(uname | tr '[:upper:]' '[:lower:]' || true)
+        case ${_uname_out} in
         linux*)
-            _os="linux"
+            printf "%s" "linux"
             ;;
         darwin*)
-            _os="mac"
+            printf "%s" "mac"
             ;;
         msys* | cygwin* | mingw* | nt | win*)
-            # or possible 'bash on windows'
-            _os="windows"
+            printf "%s" "windows"
             ;;
         *)
             return 1
@@ -54,7 +53,6 @@ _detectOS_() {
     else
         return 1
     fi
-    printf "%s" "${_os}"
 }
 
 # @description Detects the specific Linux distribution.
@@ -116,7 +114,9 @@ _detectLinuxDistro_() {
 _detectMacOSVersion_() {
     declare -f _detectOS_ &>/dev/null || fatal "${FUNCNAME[0]} needs function _detectOS_"
 
-    if [[ "$(_detectOS_)" == "mac" ]]; then
+    local _os
+    _os=$(_detectOS_)
+    if [[ "${_os}" == "mac" ]]; then
         local _mac_version
         _mac_version="$(sw_vers -productVersion)"
         printf "%s" "${_mac_version}"
@@ -192,10 +192,12 @@ _execute_() {
             VERBOSE=${_saveVerbose}
             return 0
         fi
-        if [ -n "${2:-}" ]; then
-            dryrun "${1} (${2})" "$(caller)"
+        local _caller
+        _caller=$(caller)
+        if [[ -n "${2:-}" ]]; then
+            dryrun "${1} (${2})" "${_caller}"
         else
-            dryrun "${1}" "$(caller)"
+            dryrun "${1}" "${_caller}"
         fi
     elif ${VERBOSE:-}; then
         if eval "${_command}"; then
@@ -271,12 +273,13 @@ _findBaseDir_() {
         _source="${BASH_SOURCE[0]}"
     fi
 
-    while [ -h "${_source}" ]; do # Resolve $SOURCE until the file is no longer a symlink
+    while [[ -h "${_source}" ]]; do # Resolve $SOURCE until the file is no longer a symlink
         _dir="$(cd -P "$(dirname "${_source}")" && pwd)"
         _source="$(readlink "${_source}")"
         [[ ${_source} != /* ]] && _source="${_dir}/${_source}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
     done
-    printf "%s\n" "$(cd -P "$(dirname "${_source}")" && pwd)"
+    _dir="$(cd -P "$(dirname "${_source}")" && pwd)"
+    printf "%s\n" "${_dir}"
 }
 
 # @description Generates a random UUID (Universally Unique Identifier).
@@ -336,7 +339,7 @@ _progressBar_() {
     [[ $# == 0 ]] && return   # Do nothing if no arguments are passed
     (${QUIET:-}) && return    # Do nothing in quiet mode
     (${VERBOSE:-}) && return  # Do nothing if verbose mode is enabled
-    [ ! -t 1 ] && return      # Do nothing if the output is not a terminal
+    [[ ! -t 1 ]] && return      # Do nothing if the output is not a terminal
     [[ ${1} == 1 ]] && return # Do nothing with a single element
 
     local _n="${1}"
@@ -351,7 +354,7 @@ _progressBar_() {
     ((_n = _n - 1))
 
     # Reset the count
-    [ -z "${PROGRESS_BAR_PROGRESS:-}" ] && PROGRESS_BAR_PROGRESS=0
+    [[ -z "${PROGRESS_BAR_PROGRESS:-}" ]] && PROGRESS_BAR_PROGRESS=0
 
     # Hide the cursor
     tput civis
@@ -367,7 +370,9 @@ _progressBar_() {
         # Create the progress bar string.
         _bar=""
         if [[ ${_num} -gt 0 ]]; then
-            _bar=$(printf "%0.s${_barCharacter}" $(seq 1 "${_num}"))
+            local _seq
+            _seq=$(seq 1 "${_num}")
+            _bar=$(printf "%0.s${_barCharacter}" "${_seq}")
         fi
 
         # Print the progress bar.
@@ -406,7 +411,7 @@ _progressBar_() {
 _spinner_() {
     (${QUIET:-}) && return   # Do nothing in quiet mode
     (${VERBOSE:-}) && return # Do nothing in verbose mode
-    [ ! -t 1 ] && return     # Do nothing if the output is not a terminal
+    [[ ! -t 1 ]] && return     # Do nothing if the output is not a terminal
 
     local _message
     _message="${1:-Running process}"
@@ -417,35 +422,36 @@ _spinner_() {
     [[ -z ${SPIN_NUM:-} ]] && SPIN_NUM=0
 
     case ${SPIN_NUM:-} in
-    0) _glyph="█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    1) _glyph="█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    2) _glyph="██▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    3) _glyph="███▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    4) _glyph="████▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    5) _glyph="██████▁▁▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    6) _glyph="██████▁▁▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    7) _glyph="███████▁▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    8) _glyph="████████▁▁▁▁▁▁▁▁▁▁▁▁" ;;
-    9) _glyph="█████████▁▁▁▁▁▁▁▁▁▁▁" ;;
-    10) _glyph="█████████▁▁▁▁▁▁▁▁▁▁▁" ;;
-    11) _glyph="██████████▁▁▁▁▁▁▁▁▁▁" ;;
-    12) _glyph="███████████▁▁▁▁▁▁▁▁▁" ;;
-    13) _glyph="█████████████▁▁▁▁▁▁▁" ;;
-    14) _glyph="██████████████▁▁▁▁▁▁" ;;
-    15) _glyph="██████████████▁▁▁▁▁▁" ;;
-    16) _glyph="███████████████▁▁▁▁▁" ;;
-    17) _glyph="███████████████▁▁▁▁▁" ;;
-    18) _glyph="███████████████▁▁▁▁▁" ;;
-    19) _glyph="████████████████▁▁▁▁" ;;
-    20) _glyph="█████████████████▁▁▁" ;;
-    21) _glyph="█████████████████▁▁▁" ;;
-    22) _glyph="██████████████████▁▁" ;;
-    23) _glyph="██████████████████▁▁" ;;
-    24) _glyph="███████████████████▁" ;;
-    25) _glyph="███████████████████▁" ;;
-    26) _glyph="███████████████████▁" ;;
+    0) _glyph="█                   " ;;
+    1) _glyph="█                   " ;;
+    2) _glyph="██                  " ;;
+    3) _glyph="███                 " ;;
+    4) _glyph="████                " ;;
+    5) _glyph="██████              " ;;
+    6) _glyph="██████              " ;;
+    7) _glyph="███████             " ;;
+    8) _glyph="████████            " ;;
+    9) _glyph="█████████           " ;;
+    10) _glyph="█████████           " ;;
+    11) _glyph="██████████          " ;;
+    12) _glyph="███████████         " ;;
+    13) _glyph="█████████████       " ;;
+    14) _glyph="██████████████      " ;;
+    15) _glyph="██████████████      " ;;
+    16) _glyph="███████████████     " ;;
+    17) _glyph="███████████████     " ;;
+    18) _glyph="███████████████     " ;;
+    19) _glyph="████████████████    " ;;
+    20) _glyph="█████████████████   " ;;
+    21) _glyph="█████████████████   " ;;
+    22) _glyph="██████████████████  " ;;
+    23) _glyph="██████████████████  " ;;
+    24) _glyph="███████████████████ " ;;
+    25) _glyph="███████████████████ " ;;
+    26) _glyph="███████████████████ " ;;
     27) _glyph="████████████████████" ;;
     28) _glyph="████████████████████" ;;
+    *) _glyph="█                   " ;;
     esac
 
     # shellcheck disable=SC2154
