@@ -38,9 +38,11 @@ _acquireScriptLock_() {
 
     if command mkdir "${_lockDir}" 2>/dev/null; then
         readonly SCRIPT_LOCK="${_lockDir}"
+        # shellcheck disable=SC2154 # Color variables are sourced from alerts.bash
         debug "Acquired script lock: ${yellow}${SCRIPT_LOCK}${purple}"
     else
         if declare -f "_safeExit_" &>/dev/null; then
+            # shellcheck disable=SC2154 # Color variables are sourced from alerts.bash
             error "Unable to acquire script lock: ${yellow}${_lockDir}${red}"
             fatal "If you trust the script isn't running, delete the lock dir"
         else
@@ -64,9 +66,9 @@ _acquireScriptLock_() {
 #
 # @see _safeExit_()
 _makeTempDir_() {
-    [ -d "${TMP_DIR:-}" ] && return 0
+    [[ -d "${TMP_DIR:-}" ]] && return 0
 
-    if [ -n "${1:-}" ]; then
+    if [[ -n "${1:-}" ]]; then
         TMP_DIR="${TMPDIR:-/tmp/}${1}.${RANDOM}.${RANDOM}.$$"
     else
         TMP_DIR="${TMPDIR:-/tmp/}$(basename "$0").${RANDOM}.${RANDOM}.${RANDOM}.$$"
@@ -99,6 +101,7 @@ _safeExit_() {
         if command rm -rf "${SCRIPT_LOCK}"; then
             debug "Removing script lock"
         else
+            # shellcheck disable=SC2154 # Color variables are sourced from alerts.bash
             warning "Script lock could not be removed. Try manually deleting ${yellow}'${SCRIPT_LOCK}'"
         fi
     fi
@@ -155,7 +158,7 @@ _setPATH_() {
     local _newPath
 
     for _newPath in "$@"; do
-        if [ -d "${_newPath}" ]; then
+        if [[ -d "${_newPath}" ]]; then
             if ! printf "%s" "${PATH}" | grep -Eq "(^|:)${_newPath}($|:)"; then
                 if PATH="${_newPath}:${PATH}"; then
                     debug "Added '${_newPath}' to PATH"

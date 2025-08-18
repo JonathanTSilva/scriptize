@@ -18,7 +18,7 @@ modifies the system `$PATH`.
 
 ## Shellcheck
 
-- Disable: SC2120
+- Disable: #, Color, SC2120, SC2154, alerts.bash, are, from, sourced, variables
 
 ### `_acquireScriptLock_` {#acquirescriptlock}
 
