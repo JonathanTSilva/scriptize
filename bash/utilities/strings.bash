@@ -68,6 +68,7 @@ _cleanString_() {
 
     local _string="${1}"
     local _userChars="${2:-}"
+    local _temp_string
 
     declare -a _arrayToClean=()
     IFS=',' read -r -a _arrayToClean <<<"${_userChars}"
@@ -98,8 +99,12 @@ _cleanString_() {
     fi
 
     # trim trailing/leading white space and duplicate dashes & spaces
-    _string="$(printf "%s" "${_string}" | tr -s '-' | tr -s '_')"
-    _string="$(printf "%s" "${_string}" | sed -E 's/([_\-]) /\1/g' | sed -E 's/ ([_\-])/\1/g')"
+    _temp_string=$(printf "%s" "${_string}" | tr -s '-')
+    _string=$(printf "%s" "${_temp_string}" | tr -s '_')
+
+    _temp_string=$(printf "%s" "${_string}" | sed -E 's/([_\-]) /\1/g')
+    _string=$(printf "%s" "${_temp_string}" | sed -E 's/ ([_\-])/\1/g')
+
     _string="$(printf "%s" "${_string}" | awk '{$1=$1};1')"
 
     printf "%s\n" "${_string}"
@@ -124,7 +129,7 @@ _decodeHTML_() {
     local _sedFile
     _sedFile="${HOME}/.sed/html_decode.sed"
 
-    [ -f "${_sedFile}" ] &&
+    [[ -f "${_sedFile}" ]] &&
         { printf "%s\n" "${1}" | sed -f "${_sedFile}"; } ||
         return 1
 }
@@ -163,7 +168,7 @@ _encodeHTML_() {
     local _sedFile
     _sedFile="${HOME}/.sed/html_encode.sed"
 
-    [ -f "${_sedFile}" ] &&
+    [[ -f "${_sedFile}" ]] &&
         { printf "%s" "${1}" | sed -f "${_sedFile}"; } ||
         return 1
 }
@@ -412,15 +417,18 @@ _stringRegex_() {
 _stripStopwords_() {
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
-    if ! sed --version | grep GNU &>/dev/null; then
+    local _sed_version
+    _sed_version=$(sed --version 2>/dev/null)
+    if ! printf "%s\n" "${_sed_version}" | grep -q GNU; then
         fatal "_stripStopwords_: Required GNU sed not found. Exiting."
     fi
 
     local _string="${1}"
     local _sedFile="${HOME}/.sed/stopwords.sed"
     local _w
+    local _temp_string
 
-    if [ -f "${_sedFile}" ]; then
+    if [[ -f "${_sedFile}" ]]; then
         _string="$(printf "%s" "${_string}" | sed -f "${_sedFile}")"
     else
         fatal "_stripStopwords_: Missing sedfile expected at: ${_sedFile}"
@@ -436,7 +444,8 @@ _stripStopwords_() {
     fi
 
     # Remove double spaces and trim left/right
-    _string="$(printf "%s" "${_string}" | sed -E 's/[ ]{2,}/ /g' | _trim_)"
+    _temp_string=$(printf "%s" "${_string}" | sed -E 's/[ ]{2,}/ /g')
+    _string=$(_trim_ <<<"${_temp_string}")
 
     printf "%s\n" "${_string}"
 
