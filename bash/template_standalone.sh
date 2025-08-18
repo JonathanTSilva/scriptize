@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
-# TODO: Edit this file docstrings in the shdoc model
+#=============================================================================
+# @file template_standalone.sh
+# @brief A robust, self-contained boilerplate for creating powerful and safe Bash scripts.
+# @description
+#   This script is a standalone version of the script template, with all essential
+#   utility functions included directly in the file. It provides a standard
+#   structure and best practices for error handling, argument parsing, and logging,
+#   without any external dependencies on other utility files.
+#=============================================================================
 
+#=============================================================================
+#----------------------------------- MAIN ------------------------------------
+#=============================================================================
+# @description
+#   This is the main entry point for the script's logic.
+#   Replace the content of this function with your own code.
 _mainScript_() {
 
     # Replace everything in _mainScript_() with your script's code
@@ -33,16 +47,13 @@ declare -a ARGS=()
 
 # ################################## Functions required for this template to work
 
+# @description Sets global color variables for use in alerts.
+#   It auto-detects if the terminal supports 256 colors and falls back gracefully.
+#
+# @example
+#   _setColors_
+#   printf "%s\n" "${blue}Some blue text${reset}"
 _setColors_() {
-    # DESC:
-    #         Sets colors use for alerts.
-    # ARGS:
-    #         None
-    # OUTS:
-    #         None
-    # USAGE:
-    #         printf "%s\n" "${blue}Some text${reset}"
-
     if tput setaf 1 >/dev/null 2>&1; then
         bold=$(tput bold)
         underline=$(tput smul)
@@ -84,24 +95,20 @@ _setColors_() {
     fi
 }
 
+# @description The core engine for all alerts. Controls printing of messages to stdout and log files.
+#   This function is typically not called directly, but through its wrappers (error, info, etc.).
+#
+# @arg $1 string (required) The type of alert: success, header, notice, dryrun, debug, warning, error, fatal, info, input.
+# @arg $2 string (required) The message to be printed.
+# @arg $3 integer (optional) The line number, passed via `${LINENO}` to show where the alert was triggered.
+#
+# @stdout The formatted and colorized message.
+#
+# @note For `fatal` and `error` alerts, the function stack is automatically printed.
+#
+# @example
+#   _alert_ "success" "The operation was completed." "${LINENO}"
 _alert_() {
-    # DESC:
-    #         Controls all printing of messages to log files and stdout.
-    # ARGS:
-    #         $1 (required) - The type of alert to print
-    #                         (success, header, notice, dryrun, debug, warning, error,
-    #                         fatal, info, input)
-    #         $2 (required) - The message to be printed to stdout and/or a log file
-    #         $3 (optional) - Pass '${LINENO}' to print the line number where the _alert_ was triggered
-    # OUTS:
-    #         stdout: The message is printed to stdout
-    #         log file: The message is printed to a log file
-    # USAGE:
-    #         [_alertType] "[MESSAGE]" "${LINENO}"
-    # NOTES:
-    #         - The colors of each alert type are set in this function
-    #         - For specified alert types, the funcstac will be printed
-
     local _color
     local _alertType="${1}"
     local _message="${2}"
@@ -242,15 +249,12 @@ fatal() {
     _safeExit_ "1"
 }
 
+# @description Prints the current function stack. Used for debugging and error reporting.
+#
+# @stdout Prints the stack trace in the format `( [function1]:[file1]:[line1] < [function2]:[file2]:[line2] )`.
+#
+# @note This function intelligently omits functions from this library to avoid noise.
 _printFuncStack_() {
-    # DESC:
-    #         Prints the function stack in use. Used for debugging, and error reporting.
-    # ARGS:
-    #         None
-    # OUTS:
-    #         stdout: Prints [function]:[file]:[line]
-    # NOTE:
-    #         Does not print functions from the alert class
     local _i
     declare -a _funcStackResponse=()
     for ((_i = 1; _i < ${#BASH_SOURCE[@]}; _i++)); do
@@ -270,18 +274,29 @@ _printFuncStack_() {
     printf ' )\n'
 }
 
+# @description Performs cleanup tasks and exits the script with a given code.
+#   This function is intended to be called by a `trap` at the start of a script.
+#
+# @arg $1 integer (optional) The exit code to use. Defaults to 0 (success).
+#
+# @note This function automatically removes the script lock (if set by `_acquireScriptLock_`)
+#   and the temporary directory (if set by `_makeTempDir_`).
+#
+# @example
+#   # Set trap at the beginning of a script
+#   trap '_safeExit_' EXIT INT TERM
+#
+#   # Exit with an error code
+#   _safeExit_ 1
+#
+# @see _acquireScriptLock_()
+# @see _makeTempDir_()
 _safeExit_() {
-    # DESC:
-    #       Cleanup and exit from a script
-    # ARGS:
-    #       $1 (optional) - Exit code (defaults to 0)
-    # OUTS:
-    #       None
-
     if [[ -d ${SCRIPT_LOCK:-} ]]; then
         if command rm -rf "${SCRIPT_LOCK}"; then
             debug "Removing script lock"
         else
+            # shellcheck disable=SC2154
             warning "Script lock could not be removed. Try manually deleting ${yellow}'${SCRIPT_LOCK}'"
         fi
     fi
@@ -301,21 +316,23 @@ _safeExit_() {
     exit "${1:-0}"
 }
 
+# @description The script's main error handler and cleanup function.
+#   This function is called by the `trap` command on any error, interrupt, or exit signal.
+#   It logs the error details and ensures a safe exit.
+#
+# @arg $1 integer (required) The line number where the error was trapped (`${LINENO}`).
+# @arg $2 integer (required) The line number in the function where the error occurred (`${BASH_LINENO}`).
+# @arg $3 string (required) The command that was executing at the time of the trap (`${BASH_COMMAND}`).
+# @arg $4 string (required) The shell function call stack (`${FUNCNAME[*]}`).
+# @arg $5 string (required) The name of the script (`${0}`).
+# @arg $6 string (required) The source of the script (`${BASH_SOURCE[0]}`).
+#
+# @exitcode 1 Always exits the script with status 1 after logging the fatal error.
+#
+# @example
+#   trap '_trapCleanup_ ${LINENO} ${BASH_LINENO} "${BASH_COMMAND}" "${FUNCNAME[*]}" "${0}" "${BASH_SOURCE[0]}"' EXIT INT TERM SIGINT SIGQUIT SIGTERM
+#
 _trapCleanup_() {
-    # DESC:
-    #         Log errors and cleanup from script when an error is trapped.  Called by 'trap'
-    # ARGS:
-    #         $1:  Line number where error was trapped
-    #         $2:  Line number in function
-    #         $3:  Command executing at the time of the trap
-    #         $4:  Names of all shell functions currently in the execution call stack
-    #         $5:  Scriptname
-    #         $6:  $BASH_SOURCE
-    # USAGE:
-    #         trap '_trapCleanup_ ${LINENO} ${BASH_LINENO} "${BASH_COMMAND}" "${FUNCNAME[*]}" "${0}" "${BASH_SOURCE[0]}"' EXIT INT TERM SIGINT SIGQUIT SIGTERM ERR
-    # OUTS:
-    #         Exits script with error code 1
-
     local _line=${1:-} # LINENO
     local _linecallfunc=${2:-}
     local _command="${3:-}"
@@ -348,16 +365,20 @@ _trapCleanup_() {
     fi
 }
 
+# @description Creates a unique temporary directory for the script to use.
+#
+# @arg $1 string (optional) A prefix for the temporary directory's name. Defaults to the script's basename.
+#
+# @set TMP_DIR The absolute path to the newly created temporary directory.
+#
+# @note The temporary directory is automatically removed by `_safeExit_`.
+#
+# @example
+#   _makeTempDir_ "my-script-session"
+#   touch "${TMP_DIR}/my-file.tmp"
+#
+# @see _safeExit_()
 _makeTempDir_() {
-    # DESC:
-    #         Creates a temp directory to house temporary files
-    # ARGS:
-    #         $1 (Optional) - First characters/word of directory name
-    # OUTS:
-    #         Sets $TMP_DIR variable to the path of the temp directory
-    # USAGE:
-    #         _makeTempDir_ "$(basename "$0")"
-
     [[ -d "${TMP_DIR:-}" ]] && return 0
 
     if [[ -n "${1:-}" ]]; then
@@ -371,19 +392,27 @@ _makeTempDir_() {
     debug "\$TMP_DIR=${TMP_DIR}"
 }
 
-# shellcheck disable=SC2120
+# @description Acquires a script lock to prevent multiple instances from running simultaneously.
+#   The lock is an empty directory created in `/tmp`. The script will exit if the lock
+#   cannot be acquired.
+#
+# @arg $1 string (optional) The scope of the lock. Can be 'system' for a system-wide lock,
+#   or defaults to a user-specific lock (based on `$UID`).
+#
+# @set SCRIPT_LOCK The path to the created lock directory. This variable is exported as readonly.
+#
+# @note The lock is automatically released by the `_safeExit_` function upon script termination.
+#
+# @example
+#   # Acquire a lock unique to the current user
+#   _acquireScriptLock_
+#
+#   # Acquire a system-wide lock
+#   _acquireScriptLock_ "system"
+#
+# @see _safeExit_()
 _acquireScriptLock_() {
-    # DESC:
-    #         Acquire script lock to prevent running the same script a second time before the
-    #         first instance exits
-    # ARGS:
-    #         $1 (optional) - Scope of script execution lock (system or user)
-    # OUTS:
-    #         exports $SCRIPT_LOCK - Path to the directory indicating we have the script lock
-    #         Exits script if lock cannot be acquired
-    # NOTE:
-    #         If the lock was acquired it's automatically released in _safeExit_()
-
+    # shellcheck disable=SC2120
     local _lockDir
     if [[ ${1:-} == 'system' ]]; then
         _lockDir="${TMPDIR:-/tmp/}$(basename "$0").lock"
@@ -393,9 +422,11 @@ _acquireScriptLock_() {
 
     if command mkdir "${_lockDir}" 2>/dev/null; then
         readonly SCRIPT_LOCK="${_lockDir}"
+        # shellcheck disable=SC2154
         debug "Acquired script lock: ${yellow}${SCRIPT_LOCK}${purple}"
     else
         if declare -f "_safeExit_" &>/dev/null; then
+            # shellcheck disable=SC2154
             error "Unable to acquire script lock: ${yellow}${_lockDir}${red}"
             fatal "If you trust the script isn't running, delete the lock dir"
         else
@@ -406,20 +437,24 @@ _acquireScriptLock_() {
     fi
 }
 
+# @description Prepends one or more directories to the session's `$PATH` environment variable.
+#
+# @option -x | -X Fail with an error code if any of the specified directories are not found.
+#
+# @arg $@ path (required) One or more directory paths to add to the `$PATH`.
+#
+# @set PATH The modified `$PATH` environment variable.
+# @exitcode 0 On success.
+# @exitcode 1 If `-x` is used and a directory does not exist.
+#
+# @example
+#   # Add local bin directories to the PATH
+#   _setPATH_ "/usr/local/bin" "${HOME}/.local/bin"
+#
+#   # Add a path and exit if it's not found
+#   _setPATH_ -x "/opt/my-app/bin" || exit 1
+#
 _setPATH_() {
-    # DESC:
-    #         Add directories to $PATH so script can find executables
-    # ARGS:
-    #         $@ - One or more paths
-    # OPTS:
-    #         -x - Fail if directories are not found
-    # OUTS:
-    #         0: Success
-    #         1: Failure
-    #         Adds items to $PATH
-    # USAGE:
-    #         _setPATH_ "/usr/local/bin" "${HOME}/bin" "$(npm bin)"
-
     [[ $# == 0 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local opt
@@ -431,7 +466,7 @@ _setPATH_() {
         x | X) _failIfNotFound=true ;;
         *)
             {
-                error "Unrecognized option '${1}' passed to _backupFile_" "${LINENO}"
+                error "Unrecognized option '${1}' passed to _setPATH_" "${LINENO}"
                 return 1
             }
             ;;
@@ -463,20 +498,22 @@ _setPATH_() {
     return 0
 }
 
+# @description Prepends paths to GNU utilities to the session `$PATH`.
+#   This allows for consistent script behavior by using GNU versions of `sed`, `grep`, `tar`, etc.,
+#   instead of the default BSD versions on macOS.
+#
+# @exitcode 0 On success.
+# @exitcode 1 If the underlying `_setPATH_` function fails.
+#
+# @note This function assumes GNU utilities have been installed via Homebrew (e.g., `brew install coreutils gnu-sed`).
+# @note It requires the `_setPATH_` function to be available.
+#
+# @example
+#   # Call at the beginning of a script to ensure GNU tools are used.
+#   _useGNUUtils_
+#
+# @see _setPATH_()
 _useGNUutils_() {
-    # DESC:
-    #         Add GNU utilities to PATH to allow consistent use of sed/grep/tar/etc. on MacOS
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 if successful
-    #         1 if unsuccessful
-    #         PATH: Adds GNU utilities to the path
-    # USAGE:
-    #         # if ! _useGNUUtils_; then exit 1; fi
-    # NOTES:
-    #         GNU utilities can be added to MacOS using Homebrew
-
     ! declare -f "_setPATH_" &>/dev/null && fatal "${FUNCNAME[0]} needs function _setPATH_"
 
     _setPATH_ \
@@ -494,18 +531,22 @@ _useGNUutils_() {
 
 }
 
+# @description Prepends the Homebrew binary directory to the session `$PATH`.
+#   This ensures that any tools installed via Homebrew are found by the script.
+#   It correctly handles paths for both Intel (`/usr/local/bin`) and Apple Silicon (`/opt/homebrew/bin`).
+#
+# @exitcode 0 On success.
+# @exitcode 1 If the underlying `_setPATH_` function fails.
+#
+# @note This function is intended for macOS but may work on Linux with Homebrew.
+# @note It requires the `_setPATH_` function to be available.
+#
+# @example
+#   # Ensure Homebrew executables are available.
+#   _homebrewPath_
+#
+# @see _setPATH_()
 _homebrewPath_() {
-    # DESC:
-    #         Add homebrew bin dir to PATH
-    # ARGS:
-    #         None
-    # OUTS:
-    #         0 if successful
-    #         1 if unsuccessful
-    #         PATH: Adds homebrew bin directory to PATH
-    # USAGE:
-    #         # if ! _homebrewPath_; then exit 1; fi
-
     ! declare -f "_setPATH_" &>/dev/null && fatal "${FUNCNAME[0]} needs function _setPATH_"
 
     if _uname=$(command -v uname); then
@@ -521,17 +562,25 @@ _homebrewPath_() {
     fi
 }
 
+# @description Parses command-line options and arguments passed to the script.
+#   It handles combined short options (e.g., `-vn`), long options with equals
+#   (e.g., `--logfile=/path/to.log`), and populates the global `$ARGS` array
+#   with any remaining non-option arguments.
+#
+# @arg $@ string (required) The command-line arguments passed to the script (`"$@"`).
+#
+# @set ARGS An array containing all non-option arguments.
+# @set LOGFILE The path to the log file, if specified with `--logfile`.
+# @set LOGLEVEL The logging verbosity, if specified with `--loglevel`.
+# @set DRYRUN Boolean `true` if `-n` or `--dryrun` is passed.
+# @set VERBOSE Boolean `true` if `-v` or `--verbose` is passed.
+# @set QUIET Boolean `true` if `-q` or `--quiet` is passed.
+# @set FORCE Boolean `true` if `--force` is passed.
+#
+# @example
+#   _parseOptions_ "$@"
+#
 _parseOptions_() {
-    # DESC:
-    #         Iterates through options passed to script and sets variables. Will break -ab into -a -b
-    #         when needed and --foo=bar into --foo bar
-    # ARGS:
-    #         $@ from command line
-    # OUTS:
-    #         Sets array 'ARGS' containing all arguments passed to script that were not parsed as options
-    # USAGE:
-    #         _parseOptions_ "$@"
-
     # Iterate over options
     local _optstring=h
     declare -a _options
@@ -611,25 +660,24 @@ _parseOptions_() {
     fi
 }
 
+# @description Prints output in two columns with fixed widths and text wrapping.
+#
+# @option -b | -B Bold the left column.
+# @option -u | -U Underline the left column.
+# @option -r | -R Reverse colors for the left column.
+#
+# @arg $1 string (required) Key name (Left column text).
+# @arg $2 string (required) Long value (Right column text. Wraps if too long).
+# @arg $3 integer (optional) Number of 2-space tabs to indent the output. Default is 0.
+#
+# @stdout The formatted two-column output.
+#
+# @note Long text or ANSI colors in the first column may create display issues.
+#
+# @example
+#   _columns_ -b "Status" "All systems are operational."
+#
 _columns_() {
-    # DESC:
-    #         Prints a two column output from a key/value pair.
-    #         Optionally pass a number of 2 space tabs to indent the output.
-    # ARGS:
-    #         $1 (required): Key name (Left column text)
-    #         $2 (required): Long value (Right column text. Wraps around if too long)
-    #         $3 (optional): Number of 2 character tabs to indent the command (default 1)
-    # OPTS:
-    #         -b    Bold the left column
-    #         -u    Underline the left column
-    #         -r    Reverse background and foreground colors
-    # OUTS:
-    #         stdout: Prints the output in columns
-    # NOTE:
-    #         Long text or ANSI colors in the first column may create display issues
-    # USAGE:
-    #         _columns_ "Key" "Long value text" [tab level]
-
     [[ $# -lt 2 ]] && fatal "Missing required argument to ${FUNCNAME[0]}"
 
     local opt
@@ -699,6 +747,11 @@ _columns_() {
     done <<<"${_folded_output}"
 }
 
+# @description Displays the script's help message and usage information.
+#
+# @stdout The formatted help text.
+# @note The content of this function should be edited by the developer to describe their specific script.
+#
 _usage_() {
     cat <<USAGE_TEXT
 
