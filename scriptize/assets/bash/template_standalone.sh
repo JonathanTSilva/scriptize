@@ -777,8 +777,11 @@ USAGE_TEXT
 USAGE_TEXT
 }
 
-# ################################## INITIALIZE AND RUN THE SCRIPT
-#                                    (Comment or uncomment the lines below to customize script behavior)
+#=============================================================================
+#----------------------------------- HUB -------------------------------------
+#=============================================================================
+#----------------------- INITIALIZE AND RUN THE SCRIPT -----------------------
+#---- Comment or uncomment the lines below to customize script behavior ------
 
 trap '_trapCleanup_ ${LINENO} ${BASH_LINENO} "${BASH_COMMAND}" "${FUNCNAME[*]}" "${0}" "${BASH_SOURCE[0]}"' EXIT INT TERM SIGINT SIGQUIT SIGTERM
 

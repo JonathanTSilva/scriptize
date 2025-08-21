@@ -17,8 +17,6 @@ if sys.platform == "win32":
     import ctypes
 
 # For robust validation of common data types, we use a dedicated library.
-# This should be added to your pyproject.toml dependencies.
-# poetry add validators / uv pip install validators
 try:
     import validators
 except ImportError:
@@ -27,6 +25,13 @@ except ImportError:
         "Please install it by running 'pip install validators'\n"
     )
     sys.exit(1)
+
+# Import for the demo function, kept optional.
+try:
+    from . import cli
+except ImportError:
+    cli = None
+
 
 # A more specific type hint for functions that can accept various inputs.
 AcceptableTypes = str | int | float | list | dict | set | tuple | None
@@ -218,13 +223,9 @@ def is_empty(value: AcceptableTypes) -> bool:
 
 # *====[ Demonstration ]====*
 def demo() -> None:
+    """Demonstrates the functionality of the checks module."""
     # TODO(jonathantsilva): [#1] Migrate this tests to a test suite using pytest
-    # To run this demo, you need the cli module from this library.
-    # This demonstrates how the library modules can work together.
-    try:
-        # Use a relative import to find the cli module within the same package.
-        from . import cli
-    except ImportError:
+    if cli is None:
         sys.stderr.write("Could not import the 'cli' module for this demonstration.\n")
 
         # Create a fallback for the demo if cli doesn't exist
@@ -239,58 +240,66 @@ def demo() -> None:
 
                 return printer
 
-        cli = FallbackAlerts()  # type: ignore[assignment]
+        cli_fallback = FallbackAlerts()
+    else:
+        cli_fallback = cli
 
-    cli.section("ScriptizePy Checks Demo")
+    cli_fallback.section("ScriptizePy Checks Demo")
 
     # A simple helper to format boolean checks for the demo output.
     def format_check(*, check: bool) -> str:
         """Formats a boolean value into a colored Yes/No string."""
         return "[bold green]✔ Yes[/]" if check else "[bold red]✖ No[/]"
 
-    cli.setup_logging(default_level="INFO")
+    cli_fallback.setup_logging(default_level="INFO")
     # --- System Checks ---
-    cli.header("System Checks")
-    cli.info(f"Command 'python' exists: {format_check(check=command_exists('python'))}")
-    cli.info(
+    cli_fallback.header("System Checks")
+    cli_fallback.info(f"Command 'python' exists: {format_check(check=command_exists('python'))}")
+    cli_fallback.info(
         f"Command 'nonexistentcmd' exists: {format_check(check=command_exists('nonexistentcmd'))}"
     )
-    cli.info(f"Running as root: {format_check(check=is_root())}")
-    cli.info(f"Internet is available: {format_check(check=is_internet_available())}")
-    cli.info(f"Running in a terminal: {format_check(check=is_terminal())}")
+    cli_fallback.info(f"Running as root: {format_check(check=is_root())}")
+    cli_fallback.info(f"Internet is available: {format_check(check=is_internet_available())}")
+    cli_fallback.info(f"Running in a terminal: {format_check(check=is_terminal())}")
 
     # --- File System Checks ---
-    cli.header("File System Checks")
+    cli_fallback.header("File System Checks")
     Path("temp_test_file.txt").touch()
     Path("temp_test_dir").mkdir(exist_ok=True)
-    cli.info(
+    cli_fallback.info(
         f"Path 'temp_test_file.txt' is a file: {format_check(check=is_file('temp_test_file.txt'))}"
     )
-    cli.info(f"Path 'temp_test_dir' is a file: {format_check(check=is_file('temp_test_dir'))}")
-    cli.info(f"Path 'temp_test_dir' is a directory: {format_check(check=is_dir('temp_test_dir'))}")
-    cli.info(
+    cli_fallback.info(
+        f"Path 'temp_test_dir' is a file: {format_check(check=is_file('temp_test_dir'))}"
+    )
+    cli_fallback.info(
+        f"Path 'temp_test_dir' is a directory: {format_check(check=is_dir('temp_test_dir'))}"
+    )
+    cli_fallback.info(
         f"Path 'nonexistent_path' is a directory: {format_check(check=is_dir('nonexistent_path'))}"
     )
     Path("temp_test_file.txt").unlink()
     Path("temp_test_dir").rmdir()
 
     # --- Data Format Validation ---
-    cli.header("Data Format Validation")
-    cli.info(f"'test@example.com' is an email: {format_check(check=is_email('test@example.com'))}")
-    cli.info(f"'not-an-email' is an email: {format_check(check=is_email('not-an-email'))}")
-    cli.info(f"'192.168.1.1' is IPv4: {format_check(check=is_ipv4('192.168.1.1'))}")
-    cli.info(f"'999.9.9.9' is IPv4: {format_check(check=is_ipv4('999.9.9.9'))}")
-    cli.info(f"'google.com' is FQDN: {format_check(check=is_fqdn('google.com'))}")
-    cli.info(f"'not_a_domain' is FQDN: {format_check(check=is_fqdn('not_a_domain'))}")
-    cli.info(f"'123.45' is numeric: {format_check(check=is_numeric('123.45'))}")
-    cli.info(f"'abc' is numeric: {format_check(check=is_numeric('abc'))}")
+    cli_fallback.header("Data Format Validation")
+    cli_fallback.info(
+        f"'test@example.com' is an email: {format_check(check=is_email('test@example.com'))}"
+    )
+    cli_fallback.info(f"'not-an-email' is an email: {format_check(check=is_email('not-an-email'))}")
+    cli_fallback.info(f"'192.168.1.1' is IPv4: {format_check(check=is_ipv4('192.168.1.1'))}")
+    cli_fallback.info(f"'999.9.9.9' is IPv4: {format_check(check=is_ipv4('999.9.9.9'))}")
+    cli_fallback.info(f"'google.com' is FQDN: {format_check(check=is_fqdn('google.com'))}")
+    cli_fallback.info(f"'not_a_domain' is FQDN: {format_check(check=is_fqdn('not_a_domain'))}")
+    cli_fallback.info(f"'123.45' is numeric: {format_check(check=is_numeric('123.45'))}")
+    cli_fallback.info(f"'abc' is numeric: {format_check(check=is_numeric('abc'))}")
 
     # --- Boolean & Value Checks ---
-    cli.header("Boolean & Value Checks")
-    cli.info(f"is_true('yes'): {format_check(check=is_true('yes'))}")
-    cli.info(f"is_true(0): {format_check(check=is_true(0))}")
-    cli.info(f"is_empty([]): {format_check(check=is_empty([]))}")
-    cli.info(f"is_empty('hello'): {format_check(check=is_empty('hello'))}")
+    cli_fallback.header("Boolean & Value Checks")
+    cli_fallback.info(f"is_true('yes'): {format_check(check=is_true('yes'))}")
+    cli_fallback.info(f"is_true(0): {format_check(check=is_true(0))}")
+    cli_fallback.info(f"is_empty([]): {format_check(check=is_empty([]))}")
+    cli_fallback.info(f"is_empty('hello'): {format_check(check=is_empty('hello'))}")
 
 
 if __name__ == "__main__":

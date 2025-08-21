@@ -53,11 +53,11 @@ Bash
 **Generate documentation for a single file**
 
 ```bash
-./utils/shdoc < ./bash/utilities/alerts.bash > docs/alerts_api.md
+./scriptize/utils/shdoc < ./bash/utilities/alerts.bash > docs/alerts_api.md
 ```
 
 **Generate a single documentation file for all utilities**
 
 ```bash
-./utils/shdoc < ./bash/utilities/*.bash > docs/BASH_API_REFERENCE.md
+./scriptize/utils/shdoc < ./bash/utilities/*.bash > docs/BASH_API_REFERENCE.md
 ```

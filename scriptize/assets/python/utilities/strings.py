@@ -10,6 +10,12 @@ import re
 import sys
 from urllib.parse import quote, unquote
 
+# Import for the demo function, kept optional.
+try:
+    from . import cli
+except ImportError:
+    cli = None
+
 
 # *====[ Trimming & Cleaning ]====*
 def trim(text: str) -> str:
@@ -160,10 +166,9 @@ def regex_capture(text: str, pattern: str) -> list[str]:
 
 # *====[ Demonstration ]====*
 def demo() -> None:
+    """Demonstrates the functionality of the strings module."""
     # TODO(@jonathantsilva): [#1] Migrate this demo to a test suite using pytest
-    try:
-        from . import cli
-    except ImportError:
+    if cli is None:
         sys.exit("This demo requires the 'cli' module to be available.")
 
     cli.setup_logging(default_level="DEBUG")

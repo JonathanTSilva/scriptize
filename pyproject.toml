@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [project]
 name = "scriptize"
 version = "0.1.0"
@@ -12,11 +16,19 @@ dependencies = [
 ]
 
 [tool.poetry]
-package-mode = false
+package-mode = true
+packages = [{include = "scriptize", from = "."}]
+include = ["src/scriptize/assets/**/*"]
 
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry.dependencies]
+typer = {extras = ["all"], version = "^0.16.0"}  # typer = "^0.16.0"
+rich = "^14.0.0"
+validators = "^0.35.0"
+
+# This creates the `scriptize` command in the user's PATH
+# It points to the `app` object inside the `src/scriptize/main.py` file
+[tool.poetry.scripts]
+scriptize = "scriptize.main:app"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
@@ -32,12 +44,6 @@ mkdocs = "^1.6.1"
 mkdocs-material = "^9.6.15"
 mkdocstrings = "^0.29.1"
 mkdocstrings-python = "^1.16.12"
-
-
-[tool.poetry.group.template.dependencies]
-typer = "^0.16.0"
-rich = "^14.0.0"
-validators = "^0.35.0"
 
 [tool.ruff]
 exclude = [
@@ -80,7 +86,7 @@ select = ["ALL"]
 # whereas adding `T20` will only ignore the `T20` error
 # (and probably any errors that start with `T20`)
 ignore = [
-            'Q000',  # flake8-quotes.inline-quotes="double
+            'Q000',
             'Q003',
             'COM812',
             'FIX002',
@@ -116,14 +122,13 @@ pythonpath = [
 addopts = "--doctest-modules"
 
 [tool.taskipy.tasks]
-# TODO: Create a task pre_docs to generate all the bash docs with shdoc and link them to the mkdocs
 lint = "ruff check . && isort --check --diff . | colordiff"
 lint_fix = "ruff check . --fix"
 format = "ruff format . && isort ."
 typecheck = "mypy ."
 docs = "mkdocs serve"
 pre_test = "task lint && task typecheck"
-test = "pytest -s -x --cov=python -vv"
+test = "pytest -s -x --cov=scriptize -vv"
 post_test  = "coverage html"
 
 [tool.isort]

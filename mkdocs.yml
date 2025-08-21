@@ -19,8 +19,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          # TODO(jonathan.silva): Change the python/ and bash/ folder to templates/python/...
-          paths: [python/src/utilities]
+          paths: [scriptize/assets/python/utilities]
 
 nav:
   - 'Home': index.md
