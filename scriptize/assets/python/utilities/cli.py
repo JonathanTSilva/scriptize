@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
 from shutil import get_terminal_size
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, overload
 
 import typer
 from rich.console import Console, RenderableType
@@ -29,9 +29,12 @@ try:
 except ImportError:
     import msvcrt  # For Windows
 
-from .log_manager import setup_logging
+from scriptize.logger.log_manager import setup_logging
 
 # *====[ Core Instances & Types ]====*
+
+# Define a TypeVar for use in generic functions and overloads
+T = TypeVar("T")
 
 # A single, shared Console instance for the entire application.
 # stderr is used by default to separate primary output (stdout) from alerts.
@@ -196,7 +199,7 @@ def panel(
     content: RenderableType | str,
     *,
     title: str | None = None,
-    title_align: str = "center",
+    title_align: Literal["left", "center", "right"] = "center",
     style: str = "cyan",
     padding: tuple[int, int] = (1, 2),
 ) -> None:
@@ -267,13 +270,13 @@ def spinner(text: str = "Processing...", *, style: str = "cyan") -> Iterator[Non
 # *====[ Interactive Prompts ]====*
 def _get_key_windows() -> str:
     """Gets a single key press on Windows."""
-    key = msvcrt.getch()
+    key = msvcrt.getch()  # type: ignore[attr-defined]
     if key == b"\r":
         return "ENTER"
     if key == b"\x03":
         raise KeyboardInterrupt
     if key in {b"\xe0", b"\x00"}:  # Arrow keys start with a prefix
-        second_byte = msvcrt.getch()
+        second_byte = msvcrt.getch()  # type: ignore[attr-defined]
         key_map = {b"H": "UP", b"P": "DOWN"}
         return key_map.get(second_byte, "")
     return ""
@@ -356,13 +359,33 @@ def selection[T](message: str, choices: list[T]) -> T:
     return selected_choice
 
 
+@overload
 def prompt[T](
     message: str,
     *,
-    default: T | None = None,
+    default: T,
     secret: bool = False,
     choices: list[str] | None = None,
-) -> T:
+) -> T: ...
+
+
+@overload
+def prompt(
+    message: str,
+    *,
+    default: None = None,
+    secret: bool = False,
+    choices: list[str] | None = None,
+) -> str: ...
+
+
+def prompt(
+    message: str,
+    *,
+    default: Any = None,
+    secret: bool = False,
+    choices: list[str] | None = None,
+) -> Any:
     """Prompts the user for input with a standardized style.
 
     Args:
