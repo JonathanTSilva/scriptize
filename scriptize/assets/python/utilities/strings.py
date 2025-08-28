@@ -8,13 +8,14 @@ using regular expressions.
 import html
 import re
 import sys
+from contextlib import suppress
+from typing import Any
 from urllib.parse import quote, unquote
 
 # Import for the demo function, kept optional.
-try:
+cli: Any = None
+with suppress(ImportError):
     from . import cli
-except ImportError:
-    cli = None
 
 
 # *====[ Trimming & Cleaning ]====*
