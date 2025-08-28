@@ -14,12 +14,13 @@ import sys
 import tempfile
 from collections.abc import Iterator
 from pathlib import Path
+from typing import cast
 
 # For handling YAML files.
 # This should be added to your pyproject.toml dependencies.
 # poetry add PyYAML / uv pip install PyYAML
 try:
-    import yaml
+    import yaml  # type: ignore[import-untyped]
 except ImportError:
     sys.stderr.write(
         "Error: The 'PyYAML' library is required for YAML operations. "
@@ -94,7 +95,7 @@ def read_json(path: str | Path) -> DataType:
         The parsed Python object from the JSON file.
     """
     content = read_file(path)
-    return json.loads(content)
+    return cast("DataType", json.loads(content))
 
 
 def write_json(path: str | Path, data: DataType, indent: int = 2) -> None:
@@ -124,7 +125,7 @@ def read_yaml(path: str | Path) -> DataType:
         error_msg = "PyYAML is required for YAML operations but is not installed."
         raise ImportError(error_msg)
     with Path(path).open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return cast("DataType", yaml.safe_load(f))
 
 
 def write_yaml(path: str | Path, data: DataType) -> None:
@@ -353,8 +354,11 @@ if __name__ == "__main__":
     write_yaml(test_yaml, py_data)
     cli.success(f"Wrote YAML to {test_yaml}")
     yaml_data = read_yaml(test_yaml)
-    if isinstance(yaml_data, dict) and isinstance(yaml_data.get("settings"), dict):
-        cli.info(f"Read theme from YAML: {yaml_data.get('settings', {}).get('theme')}")
+    if isinstance(yaml_data, dict):
+        settings = yaml_data.get("settings")
+        if isinstance(settings, dict):
+            theme = settings.get("theme")
+            cli.info(f"Read theme from YAML: {theme}")
 
     # --- File Operations ---
     cli.header("File Operations")
