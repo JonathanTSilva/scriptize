@@ -10,7 +10,9 @@ import shutil
 import socket
 import sys
 from collections.abc import Callable
+from contextlib import suppress
 from pathlib import Path
+from typing import Any
 
 # Platform-specific imports
 if sys.platform == "win32":
@@ -27,10 +29,9 @@ except ImportError:
     sys.exit(1)
 
 # Import for the demo function, kept optional.
-try:
+cli: Any = None
+with suppress(ImportError):
     from . import cli
-except ImportError:
-    cli = None
 
 
 # A more specific type hint for functions that can accept various inputs.
@@ -46,6 +47,12 @@ def command_exists(name: str) -> bool:
 
     Returns:
         True if the command is found, False otherwise.
+
+    Examples:
+        >>> command_exists("python")
+        True
+        >>> command_exists("non_existent_command_12345")
+        False
     """
     return shutil.which(name) is not None
 
@@ -55,6 +62,17 @@ def is_root() -> bool:
 
     Returns:
         True if running as root/admin, False otherwise.
+
+    Examples:
+        >>> # This test will pass regardless of the user, as it checks
+        >>> # the function's output against the OS's direct report.
+        >>> expected = (
+        ...     (os.geteuid() == 0)
+        ...     if sys.platform != "win32"
+        ...     else (ctypes.windll.shell32.IsUserAnAdmin() != 0)
+        ... )
+        >>> is_root() == expected
+        True
     """
     if sys.platform == "win32":
         return ctypes.windll.shell32.IsUserAnAdmin() != 0
@@ -71,6 +89,13 @@ def is_internet_available(host: str = "1.1.1.1", port: int = 53, timeout: int = 
 
     Returns:
         True if the connection is successful, False otherwise.
+
+    Examples:
+        >>> # This will likely be True if you have an internet connection.
+        >>> # is_internet_available()
+        >>> # This will always be False as it points to a reserved address.
+        >>> is_internet_available(host="192.0.2.0", timeout=1)
+        False
     """
     try:
         socket.setdefaulttimeout(timeout)
@@ -87,6 +112,12 @@ def is_terminal() -> bool:
 
     Returns:
         True if running in a TTY, False otherwise.
+
+    Examples:
+        >>> # This test checks the function's output against the direct sys call.
+        >>> # When run with doctest, it is typically False.
+        >>> is_terminal() == sys.stdout.isatty()
+        True
     """
     return sys.stdout.isatty()
 
@@ -100,6 +131,25 @@ def is_file(path: str | Path) -> bool:
 
     Returns:
         True if the path is a file, False otherwise.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> # Setup: create a dummy file and directory
+        >>> p_file = Path("doctest_temp.txt")
+        >>> p_file.touch()
+        >>> p_dir = Path("doctest_temp_dir")
+        >>> p_dir.mkdir()
+        >>> is_file(p_file)
+        True
+        >>> is_file("doctest_temp.txt")
+        True
+        >>> is_file(p_dir)
+        False
+        >>> is_file("non_existent_file.xyz")
+        False
+        >>> # Teardown: clean up created file and directory
+        >>> p_file.unlink()
+        >>> p_dir.rmdir()
     """
     return Path(path).is_file()
 
@@ -112,6 +162,25 @@ def is_dir(path: str | Path) -> bool:
 
     Returns:
         True if the path is a directory, False otherwise.
+
+    Examples:
+        >>> from pathlib import Path
+        >>> # Setup: create a dummy file and directory
+        >>> p_file = Path("doctest_temp.txt")
+        >>> p_file.touch()
+        >>> p_dir = Path("doctest_temp_dir")
+        >>> p_dir.mkdir()
+        >>> is_dir(p_dir)
+        True
+        >>> is_dir("doctest_temp_dir")
+        True
+        >>> is_dir(p_file)
+        False
+        >>> is_dir("non_existent_dir/")
+        False
+        >>> # Teardown: clean up created file and directory
+        >>> p_file.unlink()
+        >>> p_dir.rmdir()
     """
     return Path(path).is_dir()
 
@@ -125,6 +194,14 @@ def is_email(value: str) -> bool:
 
     Returns:
         True if the string is a valid email, False otherwise.
+
+    Examples:
+        >>> is_email("test@example.com")
+        True
+        >>> is_email("not-a-valid-email")
+        False
+        >>> is_email("test@localhost")
+        False
     """
     return validators.email(value) is True
 
@@ -137,6 +214,14 @@ def is_ipv4(value: str) -> bool:
 
     Returns:
         True if the string is a valid IPv4 address, False otherwise.
+
+    Examples:
+        >>> is_ipv4("192.168.0.1")
+        True
+        >>> is_ipv4("256.0.0.0")
+        False
+        >>> is_ipv4("not-an-ip")
+        False
     """
     return validators.ipv4(value) is True
 
@@ -149,6 +234,14 @@ def is_ipv6(value: str) -> bool:
 
     Returns:
         True if the string is a valid IPv6 address, False otherwise.
+
+    Examples:
+        >>> is_ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")
+        True
+        >>> is_ipv6("::1")
+        True
+        >>> is_ipv6("not-an-ipv6")
+        False
     """
     return validators.ipv6(value) is True
 
@@ -161,6 +254,14 @@ def is_fqdn(value: str) -> bool:
 
     Returns:
         True if the string is a valid FQDN, False otherwise.
+
+    Examples:
+        >>> is_fqdn("google.com")
+        True
+        >>> is_fqdn("a.b.c.co.uk")
+        True
+        >>> is_fqdn("not_a_domain")
+        False
     """
     return validators.domain(value) is True
 
@@ -173,6 +274,22 @@ def is_numeric(value: AcceptableTypes) -> bool:
 
     Returns:
         True if the value is numeric, False otherwise.
+
+    Examples:
+        >>> is_numeric(123)
+        True
+        >>> is_numeric(-45.67)
+        True
+        >>> is_numeric("99.9")
+        True
+        >>> is_numeric("-20")
+        True
+        >>> is_numeric("abc")
+        False
+        >>> is_numeric(None)
+        False
+        >>> is_numeric([1, 2])
+        False
     """
     if isinstance(value, int | float):
         return True
@@ -197,6 +314,30 @@ def is_true(value: AcceptableTypes) -> bool:
 
     Returns:
         True if the value is considered true, False otherwise.
+
+    Examples:
+        >>> is_true("true")
+        True
+        >>> is_true("Yes")
+        True
+        >>> is_true("T")
+        True
+        >>> is_true("1")
+        True
+        >>> is_true(1)
+        True
+        >>> is_true(-1)
+        True
+        >>> is_true(True)
+        True
+        >>> is_true("false")
+        False
+        >>> is_true(0)
+        False
+        >>> is_true(None)
+        False
+        >>> is_true([])
+        False
     """
     if isinstance(value, str):
         return value.lower() in {"true", "1", "t", "y", "yes"}
@@ -206,13 +347,34 @@ def is_true(value: AcceptableTypes) -> bool:
 def is_empty(value: AcceptableTypes) -> bool:
     """Check if a value is empty.
 
-    Considers None, empty strings, empty collections (list, dict, etc.), and 0.
+    Considers None and collections with a length of zero (e.g., strings,
+    lists, dictionaries).
 
     Args:
         value: The value to check.
 
     Returns:
         True if the value is considered empty, False otherwise.
+
+    Examples:
+        >>> is_empty(None)
+        True
+        >>> is_empty("")
+        True
+        >>> is_empty([])
+        True
+        >>> is_empty({})
+        True
+        >>> is_empty(set())
+        True
+        >>> is_empty("hello")
+        False
+        >>> is_empty([1, 2, 3])
+        False
+        >>> is_empty(0)
+        False
+        >>> is_empty(False)
+        False
     """
     if value is None:
         return True
@@ -223,7 +385,12 @@ def is_empty(value: AcceptableTypes) -> bool:
 
 # *====[ Demonstration ]====*
 def demo() -> None:
-    """Demonstrates the functionality of the checks module."""
+    """Demonstrates the functionality of the checks module.
+
+    This function provides a visual demonstration of the check functions by
+    printing their results to the console. It is intended for interactive
+    use and does not have a return value or doctests.
+    """
     # TODO(jonathantsilva): [#1] Migrate this tests to a test suite using pytest
     if cli is None:
         sys.stderr.write("Could not import the 'cli' module for this demonstration.\n")
