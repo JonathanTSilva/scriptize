@@ -19,7 +19,11 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [scriptize/assets/python/utilities]
+          paths: [
+            scriptize/assets/python/utilities,
+            scriptize/logger,
+            scriptize/core,
+          ]
 
 nav:
   - 'Home': index.md
