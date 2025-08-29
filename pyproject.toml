@@ -128,7 +128,7 @@ format = "ruff format . && isort ."
 typecheck = "mypy ."
 docs = "mkdocs serve"
 pre_test = "task lint && task typecheck"
-test = "pytest -s -x --cov=scriptize -vv"
+test = "pytest -s -x --cov=scriptize -vv --collect-only"
 post_test  = "coverage html"
 
 [tool.isort]
