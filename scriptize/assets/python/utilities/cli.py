@@ -10,7 +10,6 @@ import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from enum import Enum
-from pathlib import Path
 from shutil import get_terminal_size
 from typing import Any, Literal, TypeVar, overload
 
@@ -29,7 +28,6 @@ try:
 except ImportError:
     import msvcrt  # For Windows
 
-from scriptize.logger.log_manager import setup_logging
 
 # *====[ Core Instances & Types ]====*
 
@@ -45,7 +43,17 @@ _logger = logging.getLogger(__name__)
 
 
 class _AlertStyles(str, Enum):
-    """Encapsulates the rich markup for different alert styles."""
+    """Encapsulates the rich markup for different alert styles.
+
+    Attributes:
+        INFO: Markup for informational messages.
+        SUCCESS: Markup for success messages.
+        WARNING: Markup for warning messages.
+        ERROR: Markup for error messages.
+        FATAL: Markup for fatal error messages.
+        DEBUG: Markup for debug messages.
+        PROMPT: Markup for interactive prompts.
+    """
 
     INFO = "[bold cyan]\\[*][/bold cyan]"
     SUCCESS = "[bold green]\\[+][/bold green]"
@@ -66,10 +74,10 @@ def _log_alert(
     """Central helper to format and dispatch logs.
 
     Args:
-        level: The logging level (e.g., logging.INFO).
-        marker: The rich markup for the alert icon.
-        message: The log message.
-        context: Additional context to be included in the structured log.
+        level: The logging level (e.g., `logging.INFO`).
+        marker: The rich markup for the alert icon (e.g., `_AlertStyles.INFO`).
+        message: The primary log message to display.
+        context: Optional dictionary for structured logging context.
     """
     console_message = f"{marker} {message}"
 
@@ -88,17 +96,44 @@ def _log_alert(
 
 
 def info(message: str, context: dict[str, Any] | None = None) -> None:
-    """Logs an informational message."""
+    """Logs an informational message to the console.
+
+    Args:
+        message: The informational message to display.
+        context: Optional dictionary for structured logging context.
+
+    Examples:
+        >>> info("The application has started successfully.")  # doctest: +SKIP
+        >>> info("User logged in.", context={"user_id": 123})  # doctest: +SKIP
+    """
     _log_alert(logging.INFO, _AlertStyles.INFO.value, message, context)
 
 
 def success(message: str, context: dict[str, Any] | None = None) -> None:
-    """Logs a success message."""
+    """Logs a success message to the console.
+
+    Args:
+        message: The success message to display.
+        context: Optional dictionary for structured logging context.
+
+    Examples:
+        >>> success("File downloaded and verified.")  # doctest: +SKIP
+    """
     _log_alert(logging.INFO, _AlertStyles.SUCCESS.value, message, context)
 
 
 def warning(message: str, context: dict[str, Any] | None = None) -> None:
-    """Logs a warning message."""
+    """Logs a warning message to the console.
+
+    Args:
+        message: The warning message to display.
+        context: Optional dictionary for structured logging context.
+
+    Examples:
+        >>> warning(
+        ...     "The API is deprecated and will be removed in a future version."
+        ... )  # doctest: +SKIP
+    """
     _log_alert(logging.WARNING, _AlertStyles.WARNING.value, message, context)
 
 
@@ -108,14 +143,21 @@ def error(
     exc_info: bool = False,
     context: dict[str, Any] | None = None,
 ) -> None:
-    """Logs an error message.
-
-    If exc_info is True, displays a formatted traceback on the console.
+    """Logs an error message, with an optional traceback.
 
     Args:
         message: The error message to display.
-        exc_info: If True, prints the traceback to the console. Defaults to False.
-        context: Additional context for structured logging.
+        exc_info: If True, prints a formatted traceback of the current
+            exception to the console. Defaults to False.
+        context: Optional dictionary for structured logging context.
+
+    Examples:
+        >>> error("Failed to connect to the database.")  # doctest: +SKIP
+
+        >>> try:  # doctest: +SKIP
+        ...     1 / 0
+        ... except ZeroDivisionError:
+        ...     error("An unexpected mathematical error occurred.", exc_info=True)
     """
     _log_alert(logging.ERROR, _AlertStyles.ERROR.value, message, context)
 
@@ -131,27 +173,52 @@ def fatal(
     exit_code: int = 1,
     context: dict[str, Any] | None = None,
 ) -> None:
-    """Logs a critical error and exits the application."""
+    """Logs a critical error message and exits the application.
+
+    Args:
+        message: The fatal error message to display before exiting.
+        exit_code: The exit code to use for the application. Defaults to 1.
+        context: Optional dictionary for structured logging context.
+
+    Raises:
+        typer.Exit: Always raises this exception to terminate the application.
+
+    Examples:
+        >>> fatal("Configuration file not found. Cannot continue.")  # doctest: +SKIP
+    """
     fatal_message = f"FATAL: {message}"
     _log_alert(logging.CRITICAL, _AlertStyles.FATAL.value, fatal_message, context)
     raise typer.Exit(code=exit_code)
 
 
 def debug(message: str, context: dict[str, Any] | None = None) -> None:
-    """Logs a debug message."""
+    """Logs a debug message.
+
+    Note:
+        These messages are only visible if the logging level is set to DEBUG.
+
+    Args:
+        message: The debug message to display.
+        context: Optional dictionary for structured logging context.
+
+    Examples:
+        >>> debug(f"Current working directory: {Path.cwd()}")  # doctest: +SKIP
+    """
     _log_alert(logging.DEBUG, _AlertStyles.DEBUG.value, message, context)
 
 
 # *====[ UI & Structural Elements ]====*
 def section(title: str, style: str = "bold white on #005f87") -> None:
-    """Displays a beautiful, full-width, 'filled' section header.
+    """Displays a full-width, styled section header.
 
-    This creates a visually distinct, left-aligned separator that uses a
-    solid background color to clearly break up application output.
+    This creates a visually distinct separator to break up application output.
 
     Args:
-        title (str): The title of the section.
-        style: The Rich style for the header (e.g., "white on blue").
+        title: The title of the section.
+        style: The `rich` style for the header's background and text.
+
+    Examples:
+        >>> section("User Configuration")  # doctest: +SKIP
     """
     # Format the title with a decorative icon and padding
     title_text = f" » {title.upper()} "
@@ -172,11 +239,14 @@ def section(title: str, style: str = "bold white on #005f87") -> None:
 
 
 def header(title: str, style: str = "bold blue") -> None:
-    """Displays a prominent, centered header using a Rich Rule.
+    """Displays a prominent, centered header with a rule line.
 
     Args:
         title: The title text to display in the header.
-        style: The color and style of the header line.
+        style: The `rich` style for the header's text and rule line.
+
+    Examples:
+        >>> header("System Checks")  # doctest: +SKIP
     """
     prefix, suffix, end_marker = "╭───⦗  ", "  ⦘", "╮"
     full_title = f"{prefix}{title}{suffix}"
@@ -203,14 +273,17 @@ def panel(
     style: str = "cyan",
     padding: tuple[int, int] = (1, 2),
 ) -> None:
-    """Displays content inside a visually distinct panel.
+    """Displays content inside a visually distinct, bordered panel.
 
     Args:
-        content: The text or Rich renderable to display.
+        content: The text or `rich` renderable to display inside the panel.
         title: An optional title for the panel.
         title_align: Alignment for the title ('left', 'center', 'right').
-        style: The border style for the panel.
-        padding: The (vertical, horizontal) padding inside the panel.
+        style: The `rich` style for the panel's border.
+        padding: A tuple of (vertical, horizontal) padding inside the panel.
+
+    Examples:
+        >>> panel("This is important information.", title="Notice")  # doctest: +SKIP
     """
     renderable_content = Text.from_markup(content) if isinstance(content, str) else content
     panel_title = Text.from_markup(title) if title else None
@@ -233,12 +306,19 @@ def framed_box(
     title: str,
     style: Literal["info", "success", "error", "warning"] = "info",
 ) -> None:
-    """Displays content inside a styled, bordered box.
+    """Displays content inside a pre-styled, bordered box.
 
     Args:
-        content: The text or Rich renderable to display.
+        content: The text or `rich` renderable to display.
         title: The title displayed on the box's border.
-        style: The predefined style/mood of the box, which determines its color.
+        style: The pre-defined style ('info', 'success', 'error', 'warning')
+            which determines the box's color.
+
+    Examples:
+        >>> framed_box("Installation complete!", title="Success", style="success")  # doctest: +SKIP
+        >>> framed_box(
+        ...     "Network connection timed out.", title="Error", style="error"
+        ... )  # doctest: +SKIP
     """
     style_map = {
         "info": "bright_black",
@@ -253,15 +333,19 @@ def framed_box(
 
 @contextmanager
 def spinner(text: str = "Processing...", *, style: str = "cyan") -> Iterator[None]:
-    """A context manager that displays a spinner for long-running operations.
-
-    Example:
-        with alerts.spinner("Doing hard work..."):
-            time.sleep(3)
+    """Provides a context manager that displays a spinner for long operations.
 
     Args:
         text: The text to display next to the spinner.
-        style: The color of the spinner.
+        style: The `rich` style for the spinner and text.
+
+    Yields:
+        None: This is a context manager and does not yield a value.
+
+    Examples:
+        >>> with spinner("Downloading files..."):  # doctest: +SKIP
+        ...     time.sleep(5)
+        >>> success("Download complete.")  # doctest: +SKIP
     """
     with console.status(Text(text, style=style), spinner="dots"):
         yield
@@ -269,7 +353,18 @@ def spinner(text: str = "Processing...", *, style: str = "cyan") -> Iterator[Non
 
 # *====[ Interactive Prompts ]====*
 def _get_key_windows() -> str:
-    """Gets a single key press on Windows."""
+    """Gets a single key press on Windows.
+
+    This function reads raw byte input to detect special keys like Enter
+    and arrow keys, translating them into standardized strings.
+
+    Returns:
+        A string representing the key: "ENTER", "UP", "DOWN", or an empty
+        string for unhandled keys.
+
+    Raises:
+        KeyboardInterrupt: If the user presses Ctrl+C.
+    """
     key = msvcrt.getch()  # type: ignore[attr-defined]
     if key == b"\r":
         return "ENTER"
@@ -283,7 +378,19 @@ def _get_key_windows() -> str:
 
 
 def _get_key_unix() -> str:
-    """Gets a single key press on Unix-like systems."""
+    """Gets a single key press on Unix-like systems.
+
+    This function temporarily sets the terminal to raw mode to capture a
+    single character without requiring the user to press Enter. It ensures
+    the original terminal settings are restored.
+
+    Returns:
+        A string representing the key: "ENTER", "UP", "DOWN", or an empty
+        string for unhandled keys.
+
+    Raises:
+        KeyboardInterrupt: If the user presses Ctrl+C.
+    """
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
@@ -303,12 +410,24 @@ def _get_key_unix() -> str:
 
 
 def _get_key() -> str:
-    """Gets a single key press, platform-independently."""
+    """Gets a single key press, platform-independently.
+
+    This function acts as a dispatcher, calling the appropriate OS-specific
+    function to capture user input.
+
+    Returns:
+        The string representation of the pressed key (e.g., "ENTER").
+
+    Raises:
+        KeyboardInterrupt: If the user cancels the input.
+    """
     return _get_key_windows() if "msvcrt" in sys.modules else _get_key_unix()
 
 
 def selection[T](message: str, choices: list[T]) -> T:
-    """Displays an interactive, navigable selection menu.
+    """Displays an interactive, navigable selection menu for the user.
+
+    The user can navigate with arrow keys and select with Enter.
 
     Args:
         message: The prompt message to display above the choices.
@@ -319,6 +438,11 @@ def selection[T](message: str, choices: list[T]) -> T:
 
     Raises:
         ValueError: If the 'choices' list is empty.
+        KeyboardInterrupt: If the user cancels with Ctrl+C.
+
+    Examples:
+        >>> options = ["Option A", "Option B", "Option C"]  # doctest: +SKIP
+        >>> chosen_option = selection("Please choose an option:", options)  # doctest: +SKIP
     """
     if not choices:
         msg = "Cannot make a selection from an empty list of choices."
@@ -386,16 +510,23 @@ def prompt(
     secret: bool = False,
     choices: list[str] | None = None,
 ) -> Any:
-    """Prompts the user for input with a standardized style.
+    """Prompts the user for text input.
 
     Args:
         message: The message to display to the user.
-        default: A default value if the user enters nothing.
-        secret: If True, the input will be masked.
-        choices: A list of valid string choices.
+        default: A default value to return if the user enters nothing.
+        secret: If True, the user's input will be masked (for passwords).
+        choices: A list of valid string choices to validate against.
 
     Returns:
-        The value entered by the user.
+        The value entered by the user. If a `default` is provided, the
+        return type will match the type of the default value. Otherwise,
+        it returns a string.
+
+    Examples:
+        >>> name = prompt("Enter your name:", default="Guest")  # doctest: +SKIP
+        >>> password = prompt("Enter your password:", secret=True)  # doctest: +SKIP
+        >>> color = prompt("Choose a color:", choices=["red", "green", "blue"])  # doctest: +SKIP
     """
     prompt_text = Text.from_markup(f"{_AlertStyles.PROMPT.value} {message}")
     return Prompt.ask(
@@ -415,51 +546,11 @@ def confirm(message: str, *, default: bool = False) -> bool:
         default: The default result if the user just presses Enter.
 
     Returns:
-        True if the user confirms, False otherwise.
+        `True` if the user confirms, `False` otherwise.
+
+    Examples:
+        >>> if confirm("Are you sure you want to proceed?"):  # doctest: +SKIP
+        ...     info("Proceeding with operation.")
     """
     prompt_text = Text.from_markup(f"{_AlertStyles.PROMPT.value} {message}")
     return Confirm.ask(prompt_text, default=default, console=console)
-
-
-# *====[ Demonstration ]====*
-def main() -> None:
-    """Runs a demonstration of the CLI alerts module's capabilities."""
-    # TODO(jonathantsilva): [#1] Migrate this demo tests to a test suite using pytest
-    # TODO(jonathantsilva): Create a logfile scheme with rotation and retention
-
-    log_level = "DEBUG" if "--verbose" in sys.argv else "INFO"
-    setup_logging(default_level=log_level)
-
-    section("Demonstrating the Logging System")
-
-    if log_level == "INFO":
-        info("Running in INFO mode. Use '--verbose' for DEBUG messages.")
-
-    info("Application starting up.")
-    debug("This is a verbose message, only visible with --verbose.")
-    success("The setup was successful.")
-    info(
-        "Processing user request",
-        context={"user_id": 42, "request_id": "a7b3c9", "scope": "read"},
-    )
-    warning("The 'legacy_api' is deprecated and will be removed next quarter.")
-
-    try:
-        non_existent_file = Path("a_file_that_does_not_exist.txt")
-        non_existent_file.read_text()
-    except FileNotFoundError:
-        error(
-            "A handled exception occurred!",
-            exc_info=True,
-            context={
-                "failed_operation": "read_config_file",
-                "path": str(non_existent_file),
-            },
-        )
-
-    info("Demo finished successfully.")
-    info("Check 'logs/app.log.json' for the structured output.")
-
-
-if __name__ == "__main__":
-    main()

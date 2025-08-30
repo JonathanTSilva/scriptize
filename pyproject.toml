@@ -117,7 +117,7 @@ max-complexity = 10
 
 [tool.pytest.ini_options]
 pythonpath = [
-    ".", "scriptize",
+  ".", "scriptize",
 ]
 addopts = "--doctest-modules"
 
@@ -128,8 +128,9 @@ format = "ruff format . && isort ."
 typecheck = "mypy ."
 docs = "mkdocs serve"
 pre_test = "task lint && task typecheck"
-test = "pytest -s -x --cov=scriptize -vv --collect-only"
+test = "pytest -s -x --cov=scriptize -vv"
 post_test  = "coverage html"
+cov_missing = "coverage report -m"
 
 [tool.isort]
 profile = "black"
