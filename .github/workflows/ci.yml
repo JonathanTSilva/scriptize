@@ -47,6 +47,7 @@ jobs:
         with:
           # The folder where raw Allure results are stored
           report_dir: allure-results
+          gh_pages: 'gh-pages'
 
       - name: Comment on Pull Request with Report Link
         # Only run this step for pull request events
