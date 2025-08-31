@@ -38,6 +38,7 @@ taskipy = "^1.14.1"
 mypy = "^1.16.1"
 pydantic = "^2.11.7"
 pre-commit = "^4.2.0"
+allure-pytest = "^2.15.0"
 
 [tool.poetry.group.doc.dependencies]
 mkdocs = "^1.6.1"
@@ -122,15 +123,23 @@ pythonpath = [
 addopts = "--doctest-modules"
 
 [tool.taskipy.tasks]
-lint = "ruff check . && isort --check --diff . | colordiff"
-lint_fix = "ruff check . --fix"
+# LINTING
+lint = "ruff check . && isort --check --diff . | colordiff" # For local use with color
+lint_ci = "ruff check . && isort --check --diff ."         # For GitHub Actions
 format = "ruff format . && isort ."
+# TYPE CHECKING
 typecheck = "mypy ."
-docs = "mkdocs serve"
-pre_test = "task lint && task typecheck"
-test = "pytest -s -x --cov=scriptize -vv"
-post_test  = "coverage html"
+# TESTING
+test = "pytest -s -x --cov=scriptize -vv --alluredir=allure-results" # Local with -x
+test_ci = "pytest -s --cov=scriptize -vv --alluredir=allure-results"  # CI without -x
+# REPORTS
+post_test  = "coverage html -q && allure generate allure-results --clean -o allure-report"
 cov_missing = "coverage report -m"
+docs = "mkdocs serve"
+
+# CI PIPELINE
+# This single task runs the entire CI check
+ci = "task lint_ci && task typecheck && task test_ci"
 
 [tool.isort]
 profile = "black"
