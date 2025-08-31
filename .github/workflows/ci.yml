@@ -1,13 +1,23 @@
-name: Run Tests and Publish Report
+name: CI & Test Report
 
 on:
   push:
-    branches: [ main ] # Runs on pushes to the main branch
+    branches: [ main ]
   pull_request:
-    branches: [ main ] # Runs on pull requests targeting main
+    branches: [ main ]
+
+# Best Practice: Prevent race conditions on the gh-pages branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# These permissions are required for the actions to post comments and push to the gh-pages branch
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  test-and-report:
+  build-and-report:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -24,23 +34,30 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
       - name: Run CI Pipeline (Lint, Typecheck, Test)
+        # This runs all checks and generates the raw 'allure-results'
         run: poetry run task ci
 
-      - name: Generate and publish Allure Report
-        uses: allure-framework/allure-action@v3
+      - name: Generate Allure Report with History
+        uses: mgrybyk-org/allure-report-branch-js-action@v1
+        # This is crucial: The report should be generated even if tests fail
+        if: always()
+        # Give the step an ID so we can reference its outputs later
+        id: allure_report
         with:
-          # This command generates the static HTML report
-          report_command: poetry run task post_test
-          # This tells the action where the generated report is
-          report_dir: allure-report
-          # This will publish the report to GitHub Pages
-          gh_pages: true
-          # A personal access token is required to push to the gh-pages branch
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # The folder where raw Allure results are stored
+          report_dir: allure-results
+
+      - name: Comment on Pull Request with Report Link
+        # Only run this step for pull request events
+        if: github.event_name == 'pull_request'
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          # Use the outputs from the previous step to build a nice message
+          message: |
+            ${{ steps.allure_report.outputs.test_result_icon }} **Allure Test Report** is ready!
+
+            * **Report Link:** ${{ steps.allure_report.outputs.report_url }}
+            * **History:** ${{ steps.allure_report.outputs.report_history_url }}
+          # This tag allows the action to update its own comment instead of creating new ones
+          comment_tag: allure_report
