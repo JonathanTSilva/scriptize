@@ -305,9 +305,11 @@ def random_line(path: str | Path) -> str | None:
 if __name__ == "__main__":
     # TODO(@jonathantsilva): Migrate this demo to a test suite using pytest (#2)
     try:
+        from scriptize.logger.log_manager import setup_logging
+
         from . import cli
     except ImportError:
-        sys.exit("This demo requires the 'alerts' module to be available.")
+        sys.exit("This demo requires the 'cli' and 'log_manager' modules to be available.")
 
     cli.section("ScriptizePy Files Demo")
 
@@ -326,7 +328,7 @@ if __name__ == "__main__":
     test_json = demo_dir / "data.json"
     test_yaml = demo_dir / "config.yaml"
 
-    cli.setup_logging(default_level="INFO")
+    setup_logging(default_level="INFO")
     # --- Path Info ---
     cli.header("Path Information")
     cli.info(f"Full path: {test_file.resolve()}")

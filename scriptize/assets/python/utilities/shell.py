@@ -22,6 +22,8 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
+from scriptize.logger.log_manager import setup_logging
+
 from . import cli
 
 
@@ -280,7 +282,7 @@ def run_background(command: str, *, cwd: str | None = None) -> subprocess.Popen:
 def demo() -> None:
     """Demonstrates the various features of the shell utility module."""
     # TODO(@jonathantsilva): [#1] Migrate this demo to a test suite using pytest
-    cli.setup_logging(default_level="INFO")
+    setup_logging(default_level="INFO")
     cli.section("ScriptizePy Shell Demo")
 
     # --- Successful Command with Framed Output ---
