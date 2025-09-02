@@ -1,0 +1,22 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: generate-bash-docs
+        name: Generate Bash script documentation
+        entry: bash -c 'for file in ./bash/utilities/*.bash; do ./scriptize/utils/shdoc < "$file" > "./docs/api/bash/$(basename "${file%.bash}").md"; done && git add ./docs/api/bash/*.md'
+        language: system
+        files: ^bash/utilities/.*\.bash$
+        pass_filenames: false
+
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+
+-   repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+    -   id: shellcheck
+        exclude: \.bats$
