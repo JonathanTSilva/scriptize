@@ -131,16 +131,22 @@ format = "ruff format . && isort ."
 # TYPE CHECKING
 typecheck = "mypy ."
 # TESTING
-test = "pytest -s -x --cov=scriptize -vv --alluredir=allure-results" # Local with -x
-test_ci = "pytest -s --cov=scriptize -vv --alluredir=allure-results"  # CI without -x
+test = "pytest -s -x --cov=scriptize -vv --alluredir=test/allure/results" # Local with -x
+test_ci = "pytest -s --cov=scriptize -vv --alluredir=test/allure/results"  # CI without -x
 # REPORTS
-post_test  = "coverage html -q && allure generate allure-results --clean -o allure-report"
+post_test  = "coverage html && allure -q generate --quiet test/allure/results --clean -o test/allure/reports && echo 'Wrote Allure report to test/allure/reports/index.html'"
 cov_missing = "coverage report -m"
 docs = "mkdocs serve"
-
 # CI PIPELINE
 # This single task runs the entire CI check
 ci = "task lint_ci && task typecheck && task test_ci"
+
+[tool.coverage.html]
+directory = "test/htmlcov"
+
+[tool.coverage.run]
+branch = true
+source = ["scriptize"]
 
 [tool.isort]
 profile = "black"
