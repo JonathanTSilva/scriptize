@@ -38,6 +38,14 @@ jobs:
         # This runs all checks and generates the raw 'allure-results'
         run: poetry run task ci
 
+      - name: Check out gh-pages branch
+        uses: actions/checkout@v4
+        if: always()
+        continue-on-error: true # This allows the workflow to continue if the branch doesn't exist yet
+        with:
+          ref: gh-pages
+          path: gh-pages
+
       - name: Generate Allure Report with History
         uses: mgrybyk-org/allure-report-branch-js-action@v1
         # This is crucial: The report should be generated even if tests fail
@@ -46,7 +54,7 @@ jobs:
         id: allure_report
         with:
           # The folder where raw Allure results are stored
-          report_dir: allure-results
+          report_dir: test/allure/results
           gh_pages: 'gh-pages'
 
       - name: Comment on Pull Request with Report Link
