@@ -1,0 +1,1 @@
+{"total":2,"items":[{"uid":"c0ce99e73abfc87b3db3d334608d2596","name":"test.utilities","statistic":{"failed":0,"broken":0,"skipped":0,"passed":67,"unknown":0,"total":67}},{"uid":"8bc1bfb7dca76441f810b9c1042895d1","name":"scriptize.assets.python.utilities","statistic":{"failed":0,"broken":0,"skipped":14,"passed":13,"unknown":0,"total":27}}]}
