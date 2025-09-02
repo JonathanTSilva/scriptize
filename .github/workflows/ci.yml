@@ -54,7 +54,7 @@ jobs:
         id: allure_report
         with:
           # The folder where raw Allure results are stored
-          report_dir: test/allure/results
+          report_dir: 'test/allure/results'
           gh_pages: 'gh-pages'
 
       - name: Comment on Pull Request with Report Link
