@@ -32,7 +32,7 @@ jobs:
         run: pipx install poetry
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --no-interaction --no-ansi
 
       - name: Run CI Pipeline (Lint, Typecheck, Test)
         # This runs all checks and generates the raw 'allure-results'
@@ -57,6 +57,14 @@ jobs:
           report_dir: 'test/allure/results'
           gh_pages: 'gh-pages'
 
+      - name: Commit and Push Report
+        uses: mgrybyk-org/git-commit-pull-push-action@v1
+        if: always() && github.ref == 'refs/heads/main' # Only push on merge to main
+        with:
+          repository: gh-pages # The directory with the checked-out branch
+          branch: gh-pages      # The branch to push to
+          # This handles potential merge conflicts by favoring the new report
+          pull_args: --rebase -X ours
       - name: Comment on Pull Request with Report Link
         # Only run this step for pull request events
         if: github.event_name == 'pull_request'
