@@ -8,16 +8,17 @@ on:
 
 # Best Practice: Prevent race conditions on the gh-pages branch
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: "pages"
   cancel-in-progress: true
 
 # These permissions are required for the actions to post comments and push to the gh-pages branch
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  build-and-report:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -34,47 +35,42 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-ansi
 
+      - name: Install Allure Commandline
+        run: |
+          wget https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+          sudo tar -zxvf allure-2.29.0.tgz -C /opt/
+          sudo ln -s /opt/allure-2.29.0/bin/allure /usr/bin/allure
+          allure --version
+
       - name: Run CI Pipeline (Lint, Typecheck, Test)
         # This runs all checks and generates the raw 'allure-results'
         run: poetry run task ci
 
-      - name: Check out gh-pages branch
-        uses: actions/checkout@v4
-        if: always()
-        continue-on-error: true # This allows the workflow to continue if the branch doesn't exist yet
-        with:
-          ref: gh-pages
-          path: gh-pages
+      - name: Build Allure Report
+        # This creates the 'test/allure-report' directory
+        run: poetry run task post_test
 
-      - name: Generate Allure Report with History
-        uses: mgrybyk-org/allure-report-branch-js-action@v1
-        # This is crucial: The report should be generated even if tests fail
-        if: always()
-        # Give the step an ID so we can reference its outputs later
-        id: allure_report
-        with:
-          # The folder where raw Allure results are stored
-          report_dir: 'test/allure/results'
-          gh_pages: 'gh-pages'
+      - name: Set up Pages
+        # This action prepares the artifact for deployment
+        uses: actions/configure-pages@v5
 
-      - name: Commit and Push Report
-        uses: mgrybyk-org/git-commit-pull-push-action@v1
-        if: always() && github.ref == 'refs/heads/main' # Only push on merge to main
+      - name: Upload artifact
+        # This action uploads the report as a Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          repository: gh-pages # The directory with the checked-out branch
-          branch: gh-pages      # The branch to push to
-          # This handles potential merge conflicts by favoring the new report
-          pull_args: --rebase -X ours
-      - name: Comment on Pull Request with Report Link
-        # Only run this step for pull request events
-        if: github.event_name == 'pull_request'
-        uses: thollander/actions-comment-pull-request@v2
-        with:
-          # Use the outputs from the previous step to build a nice message
-          message: |
-            ${{ steps.allure_report.outputs.test_result_icon }} **Allure Test Report** is ready!
+          path: './test/allure/reports'
 
-            * **Report Link:** ${{ steps.allure_report.outputs.report_url }}
-            * **History:** ${{ steps.allure_report.outputs.report_history_url }}
-          # This tag allows the action to update its own comment instead of creating new ones
-          comment_tag: allure_report
+  # This job deploys the report
+  deploy:
+    # It requires the 'build' job to finish successfully
+    needs: build
+    # Only run this job on pushes to the main branch
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
