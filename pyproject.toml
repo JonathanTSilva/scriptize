@@ -125,12 +125,12 @@ addopts = "--doctest-modules"
 
 [tool.taskipy.tasks]
 # LINTING
-lint = "ruff check . && isort --check --diff . | colordiff" # For local use with color
-lint_ci = "ruff check . && isort --check --diff ."         # For GitHub Actions
+lint = "ruff check . && isort --check --diff ."
 format = "ruff format . && isort ."
 # TYPE CHECKING
 typecheck = "mypy ."
 # TESTING
+pre_test = "task lint && task typecheck"
 test = "pytest -s -x --cov=scriptize -vv --alluredir=test/allure/results" # Local with -x
 test_ci = "pytest -s --cov=scriptize -vv --alluredir=test/allure/results"  # CI without -x
 # REPORTS
@@ -139,7 +139,7 @@ cov_missing = "coverage report -m"
 docs = "mkdocs serve"
 # CI PIPELINE
 # This single task runs the entire CI check
-ci = "task lint_ci && task typecheck && task test_ci"
+ci = "task test_ci"
 
 [tool.coverage.html]
 directory = "test/htmlcov"
