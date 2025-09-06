@@ -12,17 +12,17 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 from rich.progress import (
     BarColumn,
     Progress,
     SpinnerColumn,
+    TaskID,
     TextColumn,
     TimeElapsedColumn,
 )
-
-from scriptize.logger.log_manager import setup_logging
 
 from . import cli
 
@@ -33,16 +33,204 @@ class ShellResult:
     """Represents the outcome of an executed shell command.
 
     Attributes:
-        stdout (str): The standard output of the command, decoded as a string.
-        stderr (str): The standard error of the command, decoded as a string.
-        returncode (int): The exit code of the command.
-        pid (int): The process ID of the executed command.
+        stdout: The standard output of the command, decoded as a string.
+        stderr: The standard error of the command, decoded as a string.
+        returncode: The exit code of the command.
+        pid: The process ID of the executed command.
     """
 
     stdout: str
     stderr: str
     returncode: int
     pid: int
+
+
+def run(
+    command: str,
+    *,
+    check: bool = True,
+    output_mode: Literal["stream", "frame", "capture", "silent"] = "stream",
+    dry_run: bool = False,
+    cwd: str | Path | None = None,
+) -> ShellResult:
+    r"""Executes an external command with enhanced control and output options.
+
+    Args:
+        command: The command to execute as a single string.
+        check: If True, raises `subprocess.CalledProcessError` on a non-zero
+            exit code. Defaults to True.
+        output_mode: Defines how the command's output is handled.
+            - "stream": (Default) Output is printed to the console in real-time.
+            - "frame": Output is captured and displayed in a styled panel.
+            - "capture": Output is captured but not displayed.
+            - "silent": Output is captured but not displayed, and no error
+              messages are printed by this function's helpers.
+        dry_run: If True, prints the command that would be executed
+            instead of running it and returns a mock result.
+        cwd: The working directory to run the command from. Defaults to the
+            current directory.
+
+    Returns:
+        An object containing the command's output and status.
+
+    Raises:
+        subprocess.CalledProcessError: If `check` is True and the command fails.
+        FileNotFoundError: If the command itself does not exist.
+
+    Examples:
+        >>> # 1. Successful command with captured output
+        >>> result = run("echo 'Hello, World!'", output_mode="capture")
+        >>> result.stdout.strip()
+        'Hello, World!'
+
+        >>> # 2. Failing command run silently for testing
+        >>> result = run("ls non_existent_dir_12345", check=False, output_mode="silent")
+        >>> result.returncode != 0
+        True
+        >>> "No such file or directory" in result.stderr
+        True
+
+        >>> # 3. Failing command with check=True (raises an exception)
+        >>> import subprocess
+        >>> try:
+        ...     run("ls non_existent_dir_12345", output_mode="silent")
+        ... except subprocess.CalledProcessError as e:
+        ...     print(f"Caught expected error with code {e.returncode}")
+        Caught expected error with code ...
+
+        >>> # 4. Dry run mode
+        >>> result = run("echo 'This will not run'", dry_run=True)
+        >>> result.returncode
+        0
+
+        >>> # 5. Run in a specific directory (cwd)
+        >>> import tempfile
+        >>> from pathlib import Path
+        >>> with tempfile.TemporaryDirectory() as tempdir:
+        ...     _ = (Path(tempdir) / "test.txt").touch()
+        ...     result = run("ls", cwd=tempdir, output_mode="capture")
+        ...     "test.txt" in result.stdout
+        True
+    """
+    if dry_run:
+        return _handle_dry_run(command)
+
+    should_stream_raw = output_mode == "stream"
+    should_frame = output_mode == "frame"
+    args = shlex.split(command)
+
+    try:
+        result = _execute_process(args, should_stream_raw=should_stream_raw, cwd=cwd)
+    except FileNotFoundError:
+        error_msg = f"Command not found: {args[0]}"
+        raise FileNotFoundError(error_msg) from None
+    else:
+        if should_stream_raw and (result.stdout or result.stderr):
+            cli.console.line()
+        if should_frame:
+            _frame_output(command, result)
+        if check and result.returncode != 0:
+            raise subprocess.CalledProcessError(
+                result.returncode,
+                cmd=args,
+                output=result.stdout,
+                stderr=result.stderr,
+            )
+        return result
+
+
+def run_parallel(
+    commands: list[str],
+    *,
+    max_workers: int = 4,
+    description: str = "Running commands...",
+    show_progress: bool = True,
+    show_summary: bool = True,
+) -> dict[str, ShellResult]:
+    r"""Executes multiple commands in parallel.
+
+    Args:
+        commands: A list of command strings to execute.
+        max_workers: The maximum number of threads to use.
+        description: A description to display above the progress bar.
+        show_progress: If True, displays a rich progress bar.
+        show_summary: If True, displays a summary of results after completion.
+
+    Returns:
+        A dictionary mapping each command to its `ShellResult`.
+
+    Examples:
+        >>> cmds = ["echo 'first'", "echo 'second'", "this_command_fails"]
+        >>> # Run silently for the test by disabling visual components
+        >>> results = run_parallel(cmds, show_progress=False, show_summary=False)
+        >>> sorted(results.keys())
+        ["echo 'first'", "echo 'second'", 'this_command_fails']
+        >>> results["echo 'first'"].stdout.strip()
+        'first'
+        >>> results["this_command_fails"].returncode != 0
+        True
+    """
+    results: dict[str, ShellResult] = {}
+
+    def _run_tasks(progress: Progress | None = None, task: TaskID | None = None) -> None:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_cmd = {
+                executor.submit(run, cmd, output_mode="capture", check=False): cmd
+                for cmd in commands
+            }
+            for future in as_completed(future_to_cmd):
+                cmd = future_to_cmd[future]
+                try:
+                    results[cmd] = future.result()
+                except FileNotFoundError as e:
+                    results[cmd] = ShellResult(stdout="", stderr=str(e), returncode=1, pid=-1)
+                if progress and task:
+                    progress.update(task, advance=1)
+
+    if show_progress:
+        progress_columns = [
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+        ]
+        with Progress(*progress_columns, transient=True) as progress:
+            task = progress.add_task(description, total=len(commands))
+            _run_tasks(progress, task)
+    else:
+        _run_tasks()
+
+    if show_summary:
+        _display_parallel_results(results)
+    return results
+
+
+def run_background(command: str, *, cwd: str | None = None) -> subprocess.Popen:
+    """Launches a command in the background and returns the process object.
+
+    Args:
+        command: The command to execute.
+        cwd: The working directory to run the command from.
+
+    Returns:
+        The `subprocess.Popen` object for the running process.
+
+    Examples:
+        >>> import time
+        >>> start_time = time.monotonic()
+        >>> proc = run_background("sleep 0.2")
+        >>> # The script continues immediately, without waiting for sleep
+        >>> duration = time.monotonic() - start_time
+        >>> duration < 0.1
+        True
+        >>> return_code = proc.wait()  # Clean up the process
+        >>> return_code
+        0
+    """
+    args = shlex.split(command)
+    # S603 is suppressed as shlex.split is used.
+    return subprocess.Popen(args, cwd=cwd)  # noqa: S603
 
 
 def _frame_output(command: str, result: ShellResult) -> None:
@@ -101,7 +289,9 @@ def _handle_dry_run(command: str) -> ShellResult:
     return ShellResult(stdout="", stderr="", returncode=0, pid=-1)
 
 
-def _execute_process(args: list[str], *, should_stream_raw: bool, cwd: str | None) -> ShellResult:
+def _execute_process(
+    args: list[str], *, should_stream_raw: bool, cwd: str | Path | None
+) -> ShellResult:
     """Executes the given command arguments in a subprocess.
 
     Streams stdout and stderr in real-time if requested and captures all output
@@ -129,6 +319,7 @@ def _execute_process(args: list[str], *, should_stream_raw: bool, cwd: str | Non
         encoding="utf-8",
         cwd=cwd,
     ) as proc:
+        pid = proc.pid
         if proc.stdout:
             for line in proc.stdout:
                 if should_stream_raw:
@@ -143,7 +334,6 @@ def _execute_process(args: list[str], *, should_stream_raw: bool, cwd: str | Non
                 stderr_lines.append(line)
         proc.wait()
         returncode = proc.returncode
-        pid = proc.pid
 
     return ShellResult(
         stdout="".join(stdout_lines),
@@ -151,185 +341,3 @@ def _execute_process(args: list[str], *, should_stream_raw: bool, cwd: str | Non
         returncode=returncode,
         pid=pid,
     )
-
-
-def run(
-    command: str,
-    *,
-    check: bool = True,
-    output_mode: Literal["stream", "frame", "capture"] = "stream",
-    dry_run: bool = False,
-    cwd: str | None = None,
-) -> ShellResult:
-    """Executes an external command with enhanced control and output options.
-
-    Args:
-        command (str): The command to execute as a single string.
-        check (bool): If True, raises `subprocess.CalledProcessError` on a
-            non-zero exit code. Defaults to True.
-        output_mode (Literal["stream", "frame", "capture"]): Defines how the
-            command's output is handled.
-            - "stream": (Default) Output is printed to the console in real-time.
-            - "frame": Output is captured and displayed in a styled panel.
-            - "capture": Output is captured but not displayed.
-        dry_run (bool): If True, prints the command that would be executed
-            instead of running it and returns a mock result.
-        cwd (str | None): The working directory to run the command from.
-            Defaults to the current directory.
-
-    Returns:
-        ShellResult: An object containing the command's output and status.
-
-    Raises:
-        subprocess.CalledProcessError: If `check` is True and the command fails.
-        FileNotFoundError: If the command itself does not exist.
-    """
-    if dry_run:
-        return _handle_dry_run(command)
-
-    should_stream_raw = output_mode == "stream"
-    should_frame = output_mode == "frame"
-    args = shlex.split(command)
-
-    try:
-        result = _execute_process(args, should_stream_raw=should_stream_raw, cwd=cwd)
-    except FileNotFoundError:
-        error_msg = f"Command not found: {args[0]}"
-        raise FileNotFoundError(error_msg) from None
-    else:
-        if should_stream_raw and (result.stdout or result.stderr):
-            cli.console.line()
-        if should_frame:
-            _frame_output(command, result)
-        if check and result.returncode != 0:
-            raise subprocess.CalledProcessError(
-                result.returncode,
-                cmd=args,
-                output=result.stdout,
-                stderr=result.stderr,
-            )
-        return result
-
-
-def run_parallel(
-    commands: list[str],
-    *,
-    max_workers: int = 4,
-    description: str = "Running commands...",
-) -> dict[str, ShellResult]:
-    """Executes multiple commands in parallel using a thread pool.
-
-    Displays a rich progress bar while commands are running. Output from the
-    commands themselves is suppressed to keep the progress bar clean, but the
-    results (including stdout/stderr) are returned upon completion.
-
-    Args:
-        commands (list[str]): A list of command strings to execute.
-        max_workers (int): The maximum number of threads to use for parallel
-            execution.
-        description (str): A description to display above the progress bar.
-
-    Returns:
-        dict[str, ShellResult]: A dictionary mapping each command to its ShellResult.
-    """
-    results: dict[str, ShellResult] = {}
-    progress_columns = [
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        TimeElapsedColumn(),
-    ]
-
-    with Progress(*progress_columns, transient=True) as progress:
-        task = progress.add_task(description, total=len(commands))
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_cmd = {
-                executor.submit(run, cmd, output_mode="capture", check=False): cmd
-                for cmd in commands
-            }
-            for future in as_completed(future_to_cmd):
-                cmd = future_to_cmd[future]
-                try:
-                    results[cmd] = future.result()
-                except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                    results[cmd] = ShellResult(stdout="", stderr=str(e), returncode=1, pid=-1)
-                progress.update(task, advance=1)
-    return results
-
-
-def run_background(command: str, *, cwd: str | None = None) -> subprocess.Popen:
-    """Launches a command in the background.
-
-    This function is useful for starting long-running services or tasks that
-    the main script does not need to wait for. It immediately returns the
-    process object for further management.
-
-    Args:
-        command (str): The command to execute.
-        cwd (str | None): The working directory to run the command from.
-
-    Returns:
-        subprocess.Popen: The Popen object for the running process, allowing
-            for interaction (e.g., `proc.wait()`, `proc.terminate()`).
-    """
-    args = shlex.split(command)
-    # S603 is suppressed as shlex.split is used.
-    return subprocess.Popen(args, cwd=cwd)  # noqa: S603
-
-
-# *====[ Demonstration ]====*
-def demo() -> None:
-    """Demonstrates the various features of the shell utility module."""
-    # TODO(@jonathantsilva): [#1] Migrate this demo to a test suite using pytest
-    setup_logging(default_level="INFO")
-    cli.section("ScriptizePy Shell Demo")
-
-    # --- Successful Command with Framed Output ---
-    cli.header("Successful Command (Framed Output)")
-    try:
-        result = run("ls -l", output_mode="frame")
-        cli.success(f"Command finished with exit code {result.returncode}")
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        cli.error(f"Command failed: {e}")
-
-    # --- Dry Run ---
-    cli.header("Dry Run")
-    run("tldr man", dry_run=True)
-
-    # --- Failing Command (check=True) ---
-    cli.header("Failing Command (check=True)")
-    cli.info("This will raise a CalledProcessError.")
-    try:
-        # Framing the output of a failing command also works
-        run("ls non_existent_directory", output_mode="frame")
-    except subprocess.CalledProcessError:
-        cli.error("Caught expected error!")
-
-    # --- Parallel Execution ---
-    cli.header("Parallel Execution")
-    parallel_commands = [
-        "sleep 1",
-        "echo 'Task 2 Done'",
-        "sleep 0.5",
-        "ls -a",
-        "echo 'Task 5 Done'",
-        "this_command_fails",  # A failing command
-    ]
-    cli.info(f"Running {len(parallel_commands)} commands in parallel...")
-    parallel_results = run_parallel(parallel_commands)
-    _display_parallel_results(parallel_results)
-    cli.success("Parallel execution finished.")
-
-    # --- Background Process ---
-    cli.header("Background Process")
-    cli.info("Starting a background 'sleep' process...")
-    proc = run_background("sleep 2")
-    cli.info(f"Process started with PID: {proc.pid}. Script continues immediately.")
-    cli.info("Waiting for background process to complete...")
-    proc.wait()
-    cli.success(f"Background process {proc.pid} has finished.")
-
-
-if __name__ == "__main__":
-    demo()
