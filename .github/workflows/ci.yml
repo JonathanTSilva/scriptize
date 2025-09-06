@@ -6,16 +6,19 @@ on:
   pull_request:
     branches: [ main ]
 
+# Best Practice: Prevent race conditions on the gh-pages branch
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: "pages"
   cancel-in-progress: true
 
+# These permissions are required for the actions to post comments and push to the gh-pages branch
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  build-and-report:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -32,52 +35,61 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-ansi
 
+      - name: Install Allure Commandline
+        run: |
+          wget https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+          sudo tar -zxvf allure-2.29.0.tgz -C /opt/
+          sudo ln -s /opt/allure-2.29.0/bin/allure /usr/bin/allure
+          allure --version
+
       - name: Run CI Pipeline (Lint, Typecheck, Test)
+        # This runs all checks and generates the raw 'allure-results'
         run: poetry run task ci
 
-      # FIX: Add this step to check out the existing gh-pages branch for history
-      - name: Check out gh-pages branch
+      - name: Check out gh-pages branch for history
         uses: actions/checkout@v4
         if: always()
-        continue-on-error: true # This allows the workflow to continue if the branch doesn't exist yet
+        continue-on-error: true
         with:
           ref: gh-pages
+          # Checkout to a specific path
           path: gh-pages
 
-      - name: Generate Allure Report with History
-        uses: mgrybyk-org/allure-report-branch-js-action@v1
-        if: always()
-        id: allure_report
-        with:
-          report_dir: 'test/allure-results'
-          gh_pages: 'gh-pages' # This MUST match the 'path' in the step above
-          max_reports: 50
-
-      - name: Move report to root of gh-pages
-        if: always()
+      - name: Copy history from previous report
         run: |
-          # The report is in a nested folder; find it (its name is dynamic)
-          LATEST_REPORT_DIR=$(find gh-pages/allure-action -type d -name "*_*" | head -n 1)
-          # Move all of its contents to the root of the gh-pages checkout
-          mv $LATEST_REPORT_DIR/* gh-pages/
+          # This command enables the history trend graph in the new report
+          cp -r gh-pages/history test/allure-results/ || echo "No history found on first run."
 
-      - name: Deploy Report to GH Pages
-        # This step only runs on pushes to the 'main' branch
-        if: always() && github.ref == 'refs/heads/main'
-        uses: mgrybyk-org/git-commit-pull-push-action@v1
+      - name: Create CI report metadata
+        run: |
+          # This creates the executor.json for clickable history links
+          echo '{"name": "GitHub Actions", "type": "github", "buildName": "Run #${{ github.run_number }}", "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"}' > ./test/allure-results/executor.json
+
+      - name: Build Allure Report
+        # This calls your new 'report_ci' task
+        run: poetry run task report_ci
+
+      - name: Set up Pages
+        # This action prepares the artifact for deployment
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        # This action uploads the report as a Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          repository: gh-pages # The directory with the checked-out branch
-          branch: gh-pages      # The branch to push to
-          # This handles potential merge conflicts by favoring the new report
-          pull_args: --rebase -X ours
+          path: './test/allure-report'
 
-      - name: Comment on Pull Request with Report Link
-        if: github.event_name == 'pull_request'
-        uses: thollander/actions-comment-pull-request@v2
-        with:
-          message: |
-            ${{ steps.allure_report.outputs.test_result_icon }} **Allure Test Report** is ready!
-
-            * **Report Link:** ${{ steps.allure_report.outputs.report_url }}
-            * **History:** ${{ steps.allure_report.outputs.report_history_url }}
-          comment_tag: allure_report
+  # This job deploys the report
+  deploy:
+    # It requires the 'build' job to finish successfully
+    needs: build
+    # Only run this job on pushes to the main branch
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
