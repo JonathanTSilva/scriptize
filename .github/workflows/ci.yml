@@ -66,7 +66,7 @@ jobs:
           echo '{"name": "GitHub Actions", "type": "github", "buildName": "Run #${{ github.run_number }}", "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"}' > ./test/allure-results/executor.json
 
       - name: Build Allure Report
-        # This calls your new 'report_ci' task
+        if: always()
         run: poetry run task report_ci
 
       - name: Set up Pages
