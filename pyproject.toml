@@ -131,14 +131,14 @@ format = "ruff format . && isort ."
 typecheck = "mypy ."
 # TESTING
 pre_test = "task lint && task typecheck"
-test = "pytest -s -x --cov=scriptize -vv --alluredir=test/allure/results" # Local with -x
-test_ci = "pytest -s --cov=scriptize -vv --alluredir=test/allure/results"  # CI without -x
+test = "rm -rf test/allure-results && pytest -s -x --cov=scriptize -vv --alluredir=test/allure-results"
+test_ci = "rm -rf test/allure-results && pytest -s --cov=scriptize -vv --alluredir=test/allure-results"
 # REPORTS
-post_test  = "coverage html && allure -q generate --quiet test/allure/results --clean -o test/allure/reports && echo 'Wrote Allure report to test/allure/reports/index.html'"
+post_test = "coverage html && cp -r test/allure-report/history test/allure-results/ 2>/dev/null || true && python -c \"import json, time; data={'name': 'Local Build', 'buildName': f'Run @ {time.strftime(\\\"%Y-%m-%d %H:%M:%S\\\")}'}; f=open('test/allure-results/executor.json', 'w'); json.dump(data, f);\" && allure -q generate test/allure-results --clean -o test/allure-report && echo 'Wrote Allure report to test/allure-reports/index.html'"
+report_ci = "allure generate test/allure-results --clean -o test/allure-report"
 cov_missing = "coverage report -m"
 docs = "mkdocs serve"
 # CI PIPELINE
-# This single task runs the entire CI check
 ci = "task test_ci"
 
 [tool.coverage.html]

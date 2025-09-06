@@ -46,9 +46,28 @@ jobs:
         # This runs all checks and generates the raw 'allure-results'
         run: poetry run task ci
 
+      - name: Check out gh-pages branch for history
+        uses: actions/checkout@v4
+        if: always()
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          # Checkout to a specific path
+          path: gh-pages
+
+      - name: Copy history from previous report
+        run: |
+          # This command enables the history trend graph in the new report
+          cp -r gh-pages/history test/allure-results/ || echo "No history found on first run."
+
+      - name: Create CI report metadata
+        run: |
+          # This creates the executor.json for clickable history links
+          echo '{"name": "GitHub Actions", "type": "github", "buildName": "Run #${{ github.run_number }}", "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"}' > ./test/allure-results/executor.json
+
       - name: Build Allure Report
-        # This creates the 'test/allure-report' directory
-        run: poetry run task post_test
+        # This calls your new 'report_ci' task
+        run: poetry run task report_ci
 
       - name: Set up Pages
         # This action prepares the artifact for deployment
@@ -58,7 +77,7 @@ jobs:
         # This action uploads the report as a Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './test/allure/reports'
+          path: './test/allure-report'
 
   # This job deploys the report
   deploy:
