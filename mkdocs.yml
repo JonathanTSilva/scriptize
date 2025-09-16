@@ -27,6 +27,7 @@ plugins:
 
 nav:
   - 'Home': index.md
+  - 'Test Report': 'test-report/allure/'
   - 'API Reference':
     - 'Bash Utilities':
       - 'Alerts': api/bash/alerts.md

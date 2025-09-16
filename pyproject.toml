@@ -124,25 +124,43 @@ pythonpath = [
 addopts = "--doctest-modules"
 
 [tool.taskipy.tasks]
-# LINTING
-lint = "ruff check . && isort --check --diff ."
-format = "ruff format . && isort ."
-# TYPE CHECKING
-typecheck = "mypy ."
-# TESTING
-pre_test = "task lint && task typecheck"
-test = "rm -rf test/allure-results && pytest -s -x --cov=scriptize -vv --alluredir=test/allure-results"
-test_ci = "rm -rf test/allure-results && pytest -s --cov=scriptize -vv --alluredir=test/allure-results"
-# REPORTS
-post_test = "coverage html && cp -r test/allure-report/history test/allure-results/ 2>/dev/null || true && python -c \"import json, time; data={'name': 'Local Build', 'buildName': f'Run @ {time.strftime(\\\"%Y-%m-%d %H:%M:%S\\\")}'}; f=open('test/allure-results/executor.json', 'w'); json.dump(data, f);\" && allure -q generate test/allure-results --clean -o test/allure-report && echo 'Wrote Allure report to test/allure-reports/index.html'"
-report_ci = "allure generate test/allure-results --clean -o test/allure-report"
-cov_missing = "coverage report -m"
+# MAIN COMMANDS
+test = "poetry run task _check && poetry run task _pytest_local"
+site = "poetry run task _build_site && echo 'Site built successfully! Run `poetry run task serve` to preview.' || echo 'Site build failed. Run `poetry run task _build_site` for detailed logs.'"
 docs = "mkdocs serve"
-# CI PIPELINE
-ci = "task test_ci"
+serve = "python -m http.server --directory site 8008"
+
+# QUALITY CHECKS
+lint = "ruff check . && isort --check --diff ."
+typecheck = "mypy ."
+_check = "poetry run task lint && poetry run task typecheck"
+format = "ruff format . && isort ."
+post_test = "coverage html"
+
+# CORE TEST
+_pytest_local = "rm -rf test/allure-results && pytest -s -x --cov=scriptize -vv --alluredir=test/allure-results"
+_pytest_ci = "rm -rf test/allure-results && pytest -s --cov=scriptize -vv --alluredir=test/allure-results"
+
+# CORE BUILD
+_docs_build = "mkdocs build --clean"
+_report_build = """
+mkdir -p test/allure-history && \
+cp -r test/allure-history/history test/allure-results/ 2>/dev/null || true && \
+python test/scripts/generate_executor.py && \
+allure -q generate test/allure-results --clean -o site/test-report/allure && \
+cp -r site/test-report/allure/history test/allure-history/
+"""
+_build_site = """
+echo '[1/3] Running tests...' && poetry run task _pytest_local >/dev/null 2>&1 && \
+echo '[2/3] Building documentation...' && poetry run task _docs_build >/dev/null 2>&1 && \
+echo '[3/3] Building test report...' && poetry run task _report_build >/dev/null 2>&1
+"""
+
+# GITHUB CI
+ci = "poetry run task _check && poetry run task _pytest_ci"
 
 [tool.coverage.html]
-directory = "test/htmlcov"
+directory = "site/test-report/coverage"
 
 [tool.coverage.run]
 branch = true
