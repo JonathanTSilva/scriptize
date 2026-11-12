@@ -1,0 +1,72 @@
+name: test-report
+
+# Publishes the Allure test report to GitHub Pages. Moved out of the old ci.yml;
+# it runs on main only, the pull request checks live in ci.yml.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Prevent race conditions on the pages deployment
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Run the tests
+        run: uv run pytest --alluredir=test/allure-results
+      - name: Install Allure commandline
+        run: |
+          wget -q https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+          sudo tar -zxf allure-2.29.0.tgz -C /opt/
+          sudo ln -s /opt/allure-2.29.0/bin/allure /usr/bin/allure
+          allure --version
+      - name: Check out gh-pages for the report history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+          persist-credentials: false
+      - name: Copy history from the previous report
+        run: cp -r gh-pages/history test/allure-results/ || echo "No history found on first run."
+      - name: Create report metadata
+        run: |
+          # executor.json gives the report clickable history links
+          cat > test/allure-results/executor.json <<JSON
+          {"name": "GitHub Actions", "type": "github", "buildName": "Run #${{ github.run_number }}", "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"}
+          JSON
+      - name: Build the Allure report
+        run: allure generate test/allure-results --clean -o test/allure-report
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: test/allure-report
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

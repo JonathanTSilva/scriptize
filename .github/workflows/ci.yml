@@ -1,95 +1,62 @@
-name: CI & Test Report
+name: ci
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [main]
 
-# Best Practice: Prevent race conditions on the gh-pages branch
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-# These permissions are required for the actions to post comments and push to the gh-pages branch
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+permissions: {}
 
 jobs:
-  build:
+  hygiene:
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: read
+    uses: JonathanTSilva/.github/.github/workflows/pr-hygiene.yml@v1
+
+  docs:
+    permissions:
+      contents: read
+    uses: JonathanTSilva/.github/.github/workflows/lint-docs.yml@v1
+
+  security:
+    # GitHub checks caller permissions statically, so all of them are granted
+    # even when the job is skipped or runs with public: false.
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+      id-token: write
+      security-events: write
+    uses: JonathanTSilva/.github/.github/workflows/security.yml@v1
+    with:
+      public: true
+
+  python:
+    permissions:
+      contents: read
+    uses: JonathanTSilva/.github/.github/workflows/python.yml@v1
+
+  # Shell scripts and bats tests (kept from the old CI, see shell.yml).
+  shell:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/shell.yml
+
+  # The one check the repository ruleset requires. Skipped jobs are fine.
+  ci:
+    name: ci
+    if: always()
+    needs:
+      - hygiene
+      - docs
+      - security
+      - python
+      - shell
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Install Poetry
-        run: pipx install poetry
-
-      - name: Install dependencies
-        run: poetry install --no-interaction --no-ansi
-
-      - name: Install Allure Commandline
-        run: |
-          wget https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
-          sudo tar -zxvf allure-2.29.0.tgz -C /opt/
-          sudo ln -s /opt/allure-2.29.0/bin/allure /usr/bin/allure
-          allure --version
-
-      - name: Run CI Pipeline (Lint, Typecheck, Test)
-        # This runs all checks and generates the raw 'allure-results'
-        run: poetry run task ci
-
-      - name: Check out gh-pages branch for history
-        uses: actions/checkout@v4
-        if: always()
-        continue-on-error: true
-        with:
-          ref: gh-pages
-          # Checkout to a specific path
-          path: gh-pages
-
-      - name: Copy history from previous report
-        run: |
-          # This command enables the history trend graph in the new report
-          cp -r gh-pages/history test/allure-results/ || echo "No history found on first run."
-
-      - name: Create CI report metadata
-        run: |
-          # This creates the executor.json for clickable history links
-          echo '{"name": "GitHub Actions", "type": "github", "buildName": "Run #${{ github.run_number }}", "buildUrl": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "reportUrl": "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"}' > ./test/allure-results/executor.json
-
-      - name: Build Allure Report
-        if: always()
-        run: poetry run task report_ci
-
-      - name: Set up Pages
-        # This action prepares the artifact for deployment
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        # This action uploads the report as a Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './test/allure-report'
-
-  # This job deploys the report
-  deploy:
-    # It requires the 'build' job to finish successfully
-    needs: build
-    # Only run this job on pushes to the main branch
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Fail if any job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
