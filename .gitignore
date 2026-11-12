@@ -209,3 +209,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Engineering standard additions
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db
+.env.*
+!.env.example
+*.pem
+*.key
+.claude/settings.local.json
+CLAUDE.local.md
