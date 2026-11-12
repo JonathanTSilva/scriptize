@@ -505,6 +505,7 @@ _listFiles_() {
         _find_output=$(find "${_directory}" -maxdepth 1 -iname "${_pattern}" -type f)
         _sorted_output=$(printf "%s\n" "${_find_output}" | sort) || true
         while read -r _fileMatch; do
+            [[ -z ${_fileMatch} ]] && continue
             _matchedFiles+=("$(realpath "${_fileMatch}")")
         done <<<"${_sorted_output}"
         ;;
@@ -512,6 +513,7 @@ _listFiles_() {
         _find_output=$(find "${_directory}" -maxdepth 1 -regextype posix-extended -iregex "${_pattern}" -type f)
         _sorted_output=$(printf "%s\n" "${_find_output}" | sort) || true
         while read -r _fileMatch; do
+            [[ -z ${_fileMatch} ]] && continue
             _matchedFiles+=("$(realpath "${_fileMatch}")")
         done <<<"${_sorted_output}"
         ;;

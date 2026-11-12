@@ -4,6 +4,7 @@ set -euo pipefail
 
 # Load the path to the templates repository
 if [[ -f /etc/script-templates/config ]]; then
+    # shellcheck source=/dev/null
     source /etc/script-templates/config
 else
     echo "Error: Configuration file not found. Please run install.sh" >&2
@@ -20,23 +21,23 @@ if [[ $# -ne 2 ]]; then
     exit 1
 fi
 
-type="$1"
-proj_name="$2"
+type="${1}"
+proj_name="${2}"
 
-if [[ -d "$proj_name" ]]; then
-    echo "Error: Directory '$proj_name' already exists."
+if [[ -d "${proj_name}" ]]; then
+    echo "Error: Directory '${proj_name}' already exists."
     exit 1
 fi
 
-echo "Creating new $type project: $proj_name"
-mkdir -p "$proj_name"
-cd "$proj_name"
+echo "Creating new ${type} project: ${proj_name}"
+mkdir -p "${proj_name}"
+cd "${proj_name}"
 
-case "$type" in
+case "${type}" in
 bash)
     script_name="${proj_name}.sh"
     template_path="${TEMPLATE_REPO_PATH}/bash/template.sh"
-    cp "$template_path" "./${script_name}"
+    cp "${template_path}" "./${script_name}"
     chmod +x "./${script_name}"
 
     # This is the key: create a symlink to the utilities directory
@@ -46,6 +47,7 @@ bash)
     # The original template is complex, so let's adjust the _sourceUtilities_ call
     # The default is: _sourceUtilities_ "$(_findBaseDir_)/../shell-scripting-templates/utilities"
     # We will change it to: _sourceUtilities_ "$(_findBaseDir_)/utilities"
+    # shellcheck disable=SC2016 # the $(...) must reach the generated script unexpanded
     sed -i 's#_sourceUtilities_.*#_sourceUtilities_ "$(_findBaseDir_)/utilities"#' "./${script_name}"
 
     echo "Created ${script_name}"
@@ -55,14 +57,14 @@ bash)
 python)
     script_name="${proj_name}.py"
     template_path="${TEMPLATE_REPO_PATH}/python/template.py"
-    cp "$template_path" "./${script_name}"
+    cp "${template_path}" "./${script_name}"
     chmod +x "./${script_name}"
     echo "Created ${script_name}"
     echo "Remember to setup your python environment (e.g., venv)."
     ;;
 *)
-    cd .. && rm -r "$proj_name" # cleanup
-    echo "Error: Invalid type '$type'. Choose 'bash' or 'python'." >&2
+    cd .. && rm -r "${proj_name}" # cleanup
+    echo "Error: Invalid type '${type}'. Choose 'bash' or 'python'." >&2
     exit 1
     ;;
 esac
