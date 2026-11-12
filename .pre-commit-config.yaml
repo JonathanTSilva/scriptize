@@ -1,22 +1,45 @@
+---
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
--   repo: local
+  - repo: local
     hooks:
-    -   id: generate-bash-docs
+      - id: generate-bash-docs
         name: Generate Bash script documentation
         entry: bash -c 'for file in ./bash/utilities/*.bash; do ./scriptize/utils/shdoc < "$file" > "./docs/api/bash/$(basename "${file%.bash}").md"; done && git add ./docs/api/bash/*.md'
         language: system
         files: ^bash/utilities/.*\.bash$
         pass_filenames: false
 
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
 
--   repo: https://github.com/shellcheck-py/shellcheck-py
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.5.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
     hooks:
-    -   id: shellcheck
+      - id: shellcheck
         exclude: \.bats$

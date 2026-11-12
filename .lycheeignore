@@ -1,0 +1,7 @@
+# Bot-blocked sites
+^https?://stackoverflow\.com/
+# Dead references quoted in source comments and the shdoc pages generated from them (TODO: replace or drop)
+^https://gist\.github\.com/epiloque/8cf512c6d64641bde388$
+^https://gist\.github\.com/natelandau/b6ec165862277f3a7a4beff76da53a9c$
+^https://github\.com/herrbischoff/awesome-osx-command-line/blob/master/functions\.md$
+^http://ryonsherman\.blogspot\.com/2012/10/shell-script-to-send-pushover\.html$

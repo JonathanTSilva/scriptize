@@ -9,7 +9,7 @@ import logging
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
-from enum import Enum
+from enum import StrEnum
 from shutil import get_terminal_size
 from typing import Any, Literal, TypeVar, overload
 
@@ -42,7 +42,7 @@ console = Console(stderr=True, highlight=False)
 _logger = logging.getLogger(__name__)
 
 
-class _AlertStyles(str, Enum):
+class _AlertStyles(StrEnum):
     """Encapsulates the rich markup for different alert styles.
 
     Attributes:
@@ -162,8 +162,9 @@ def error(
     _log_alert(logging.ERROR, _AlertStyles.ERROR.value, message, context)
 
     # If requested and an exception is available, print a rich traceback
-    if exc_info and sys.exc_info()[0] is not None:
-        tb = Traceback.from_exception(*sys.exc_info(), show_locals=False)
+    exc_type, exc_value, exc_tb = sys.exc_info()
+    if exc_info and exc_type is not None and exc_value is not None:
+        tb = Traceback.from_exception(exc_type, exc_value, exc_tb, show_locals=False)
         console.print(tb)
 
 

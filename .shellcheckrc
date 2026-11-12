@@ -16,3 +16,4 @@ disable=SC2034 # Allow unused variables
 
 # Add the script directory to the search path for source statements
 source-path=SCRIPTDIR
+disable=SC2329 # Allow functions that are only invoked by sourcing scripts (templates)

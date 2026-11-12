@@ -1,0 +1,74 @@
+name: shell
+
+# Called by ci.yml. The bash utilities and templates live in scriptize/assets/bash,
+# and their bats tests expect to run inside a generated project, so they are
+# staged into a scratch project here.
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  lint:
+    name: shellcheck and shfmt
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Find shell scripts
+        run: |
+          # tracked *.sh files plus tracked files whose first line is a sh/bash shebang
+          : > "$RUNNER_TEMP/scripts.txt"
+          while IFS= read -r -d '' file; do
+            if [[ "$file" == *.sh ]] || head -n 1 "$file" | grep -Eq '^#!.*\b(ba)?sh\b'; then
+              printf '%s\0' "$file" >> "$RUNNER_TEMP/scripts.txt"
+            fi
+          done < <(git ls-files -z)
+          echo "Found $(tr -cd '\0' < "$RUNNER_TEMP/scripts.txt" | wc -c) shell scripts"
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: shellcheck
+        run: xargs -0 -r uvx --from shellcheck-py==0.11.0.1 shellcheck < "$RUNNER_TEMP/scripts.txt"
+      - name: shfmt
+        run: xargs -0 -r uvx --from shfmt-py==4.2.0 shfmt -d < "$RUNNER_TEMP/scripts.txt"
+
+  bats:
+    name: bats
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      # The date tests were written in US Eastern time.
+      TZ: America/New_York
+      # Some tests call tput, which needs a terminal type
+      TERM: xterm-256color
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Stage a project for the tests
+        run: |
+          project="$RUNNER_TEMP/project"
+          cp -r scriptize/assets/bash "$project"
+          git -C "$project" init -q
+          # sed files the string utilities look for in ~/.sed
+          mkdir -p "$HOME/.sed"
+          cp "$project"/sedfiles/*.sed "$HOME/.sed/"
+          # bats helper libraries, pinned by commit
+          helpers="$project/test/test_helper"
+          mkdir -p "$helpers"
+          while read -r name sha; do
+            git init -q "$helpers/$name"
+            git -C "$helpers/$name" fetch -q --depth 1 "https://github.com/bats-core/$name.git" "$sha"
+            git -C "$helpers/$name" checkout -q FETCH_HEAD
+          done <<'LIBS'
+          bats-support 24a72e14349690bcbf7c151b9d2d1cdd32d36eb1
+          bats-assert 78fa631d1370562d2cd4a1390989e706158e7bf0
+          bats-file 13ad5e2ffcc360281432db3d43a306f7b3667d60
+          LIBS
+      - name: bats
+        working-directory: ${{ runner.temp }}/project
+        run: npx --yes bats@1.13.0 test/

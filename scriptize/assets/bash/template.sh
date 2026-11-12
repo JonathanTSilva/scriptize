@@ -122,7 +122,7 @@ _findBaseDir_() {
         _source="${BASH_SOURCE[0]}"
     fi
 
-    while [[ -h "${_source}" ]]; do # Resolve $SOURCE until the file is no longer a symlink
+    while [[ -L "${_source}" ]]; do # Resolve $SOURCE until the file is no longer a symlink
         _dir="$(cd -P "$(dirname "${_source}")" && pwd)"
         _source="$(readlink "${_source}")"
         [[ ${_source} != /* ]] && _source="${_dir}/${_source}" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located

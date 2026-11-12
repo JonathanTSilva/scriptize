@@ -485,7 +485,7 @@ _testParseYAML_() {
     assert_success
     assert_line --index 0 --partial "# buf :  Backup file with time stamp"
     assert_line --index 5 --regexp "^ *cp -a .*"
-    refute_output --regexp "buf\(\) {"
+    refute_output --regexp "buf\(\) \{"
     refute_output --regexp '}[^"_]'
     refute_output --regexp "md5Check"
 }
@@ -495,7 +495,7 @@ _testParseYAML_() {
     assert_success
     assert_line --index 0 --partial "# buf :  Backup file with time stamp"
     assert_line --index 5 --regexp "^ *cp -a .*"
-    refute_output --regexp "buf\(\) {"
+    refute_output --regexp "buf\(\) \{"
     assert_line --index 29 --regexp "^ *fi.*"
     assert_output --regexp "md5Check"
 }

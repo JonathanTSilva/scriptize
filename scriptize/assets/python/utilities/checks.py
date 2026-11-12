@@ -9,6 +9,7 @@ import os
 import shutil
 import socket
 import sys
+from collections.abc import Sized
 from pathlib import Path
 
 # Platform-specific imports
@@ -370,6 +371,6 @@ def is_empty(value: AcceptableTypes) -> bool:
     """
     if value is None:
         return True
-    if hasattr(value, "__len__"):
+    if isinstance(value, Sized):
         return len(value) == 0
     return False

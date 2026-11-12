@@ -89,8 +89,9 @@ class JSONFormatter(logging.Formatter):
                 log_object[field] = value
 
         # Add extra context from the user if it exists
-        if hasattr(record, "extra_data") and record.extra_data:
-            log_object.update(record.extra_data)
+        extra_data = getattr(record, "extra_data", None)
+        if extra_data:
+            log_object.update(extra_data)
 
         # Add formatted exception information if present
         if record.exc_info:

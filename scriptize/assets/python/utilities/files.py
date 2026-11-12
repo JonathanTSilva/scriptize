@@ -5,7 +5,7 @@ structured data (JSON, YAML), creating backups, listing files, and safely
 handling paths using the modern `pathlib` library.
 """
 
-import datetime
+import datetime as dt
 import json
 import os
 import random
@@ -283,7 +283,7 @@ def backup_file(path: str | Path, suffix: str | None = None) -> Path:
 
     if suffix is None:
         # Use timezone-aware datetime to avoid ambiguity.
-        now = datetime.datetime.now(datetime.UTC)
+        now = dt.datetime.now(dt.UTC)
         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
         backup_suffix = f".{timestamp}.bak"
     else:
