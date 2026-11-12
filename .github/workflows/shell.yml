@@ -43,6 +43,8 @@ jobs:
     env:
       # The date tests were written in US Eastern time.
       TZ: America/New_York
+      # Some tests call tput, which needs a terminal type
+      TERM: xterm-256color
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
