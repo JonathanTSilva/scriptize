@@ -1,6 +1,9 @@
-# scriptize
-
-➕ Improve maintainability, readability, and efficiency of your scripts by standardize your scripting environment.
+<!-- brand:header:start -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/header-a2c53ea8-dark.svg">
+  <img alt="scriptize: Standardize the scripting environment to improve the maintainability, readability and efficiency of your scripts" src="assets/brand/header-a2c53ea8-light.svg" width="100%">
+</picture>
+<!-- brand:header:end -->
 
 <!-- badges:start -->
 [![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)](https://www.repostatus.org/#active)
@@ -97,3 +100,10 @@ The Bash utilities are tested with bats, see [`.github/workflows/shell.yml`](.gi
 ## License
 
 [MIT](LICENSE)
+
+<!-- brand:footer:start -->
+<p align="right"><a href="https://www.jontobias.com"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/JonathanTSilva/.github/main/assets/brand/jontobias-dark.svg">
+  <img alt="jontobias.com" src="https://raw.githubusercontent.com/JonathanTSilva/.github/main/assets/brand/jontobias-light.svg" width="200">
+</picture></a></p>
+<!-- brand:footer:end -->
