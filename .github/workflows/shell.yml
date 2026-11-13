@@ -71,4 +71,6 @@ jobs:
           LIBS
       - name: bats
         working-directory: ${{ runner.temp }}/project
-        run: npx --yes bats@1.13.0 test/
+        run: |
+          npm install --no-save --ignore-scripts --prefix "$RUNNER_TEMP/bats-cli" bats@1.13.0
+          "$RUNNER_TEMP/bats-cli/node_modules/.bin/bats" test/

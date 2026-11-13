@@ -1,15 +1,20 @@
 # Changes here will be overwritten by Copier. Re-sync with `copier update`.
-_commit: v1.1.0
+_commit: v1.2.0
 _src_path: gh:JonathanTSilva/template-repo
+bench: false
 description: ➕ Standardize the scripting environment to improve the maintainability,
     readability and efficiency of your scripts
+e2e: false
 has_release: false
 kind: product
 license: mit
+lighthouse: false
+load: false
 repo_name: scriptize
+reports: false
 skeleton: false
+sonar: true
 stack: python
 status: active
 visibility: public
 year: 2026
-

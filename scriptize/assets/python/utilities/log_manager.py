@@ -157,6 +157,28 @@ DEFAULT_LOGGING_CONFIG: LogConfig = {
 }
 
 
+def _ensure_log_dir(log_file: Path) -> None:
+    """Creates the log file's parent directory, only inside the working directory.
+
+    The file name can come from a user-supplied config file, so directories are
+    never created outside the current working directory (path traversal guard).
+    For any other location the directory must already exist.
+
+    Args:
+        log_file: The log file path taken from the logging configuration.
+    """
+    base = Path.cwd().resolve()
+    parent = (base / log_file).parent.resolve()
+    if parent.is_relative_to(base):
+        parent.mkdir(parents=True, exist_ok=True)
+    elif not parent.is_dir():
+        _logger.warning(
+            "Log directory '%s' is outside the working directory and does not exist; "
+            "not creating it.",
+            parent,
+        )
+
+
 def setup_logging(
     config_path: str | Path | None = None,
     default_level: str = "INFO",
@@ -197,7 +219,7 @@ def setup_logging(
     # Ensure the log file's parent directory exists.
     if "file" in config.get("handlers", {}):
         log_filename = config["handlers"]["file"]["filename"]
-        Path(log_filename).parent.mkdir(parents=True, exist_ok=True)
+        _ensure_log_dir(Path(log_filename))
 
     # Configure logging using the prepared dictionary.
     logging.config.dictConfig(config)
