@@ -1,7 +1,7 @@
 <!-- brand:header:start -->
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/header-a2c53ea8-dark.svg">
-  <img alt="scriptize: Standardize the scripting environment to improve the maintainability, readability and efficiency of your scripts" src="assets/brand/header-a2c53ea8-light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/header-371eddd9-dark.svg">
+  <img alt="scriptize: Standardize the scripting environment to improve the maintainability, readability and efficiency of your scripts" src="assets/brand/header-371eddd9-light.svg" width="100%">
 </picture>
 <!-- brand:header:end -->
 
