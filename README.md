@@ -5,6 +5,8 @@
 <!-- badges:start -->
 [![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)](https://www.repostatus.org/#active)
 [![CI](https://img.shields.io/github/actions/workflow/status/JonathanTSilva/scriptize/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/JonathanTSilva/scriptize/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/JonathanTSilva/scriptize/graph/badge.svg)](https://codecov.io/gh/JonathanTSilva/scriptize)
+[![Quality](https://sonarcloud.io/api/project_badges/measure?project=JonathanTSilva_scriptize&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=JonathanTSilva_scriptize)
 [![Scorecard](https://img.shields.io/ossf-scorecard/github.com/JonathanTSilva/scriptize?style=flat-square&label=scorecard)](https://scorecard.dev/viewer/?uri=github.com/JonathanTSilva/scriptize)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![Codespaces](https://img.shields.io/badge/codespaces-open-181717?style=flat-square&logo=github)](https://codespaces.new/JonathanTSilva/scriptize)

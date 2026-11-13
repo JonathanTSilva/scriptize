@@ -27,12 +27,12 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: "3.13"
-      - run: uv sync --frozen
+      - run: uv sync --frozen --no-build
       - name: Run the tests
-        run: uv run pytest --alluredir=test/allure-results
+        run: uv run --frozen --no-build pytest --alluredir=test/allure-results
       - name: Install Allure commandline
         run: |
-          wget -q https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+          curl -fsSL --proto '=https' --proto-redir '=https' -O https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
           sudo tar -zxf allure-2.29.0.tgz -C /opt/
           sudo ln -s /opt/allure-2.29.0/bin/allure /usr/bin/allure
           allure --version
