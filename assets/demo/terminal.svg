@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="807" height="426" viewBox="0 0 807 426" role="img" aria-labelledby="t">
+<title id="t">Terminal: new-script creates a Bash project and the generated script prints its colored alerts</title>
+<rect width="807" height="426" rx="10" fill="#0d1117" stroke="#30363d"/>
+<path d="M0 10a10 10 0 0 1 10-10h787a10 10 0 0 1 10 10v28H0z" fill="#161b22"/>
+<circle cx="24" cy="19" r="6" fill="#ff5f56"/><circle cx="44" cy="19" r="6" fill="#ffbd2e"/><circle cx="64" cy="19" r="6" fill="#27c93f"/>
+<text x="403.5" y="24" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="12" fill="#8b949e">scriptize</text>
+<g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14" xml:space="preserve">
+<text x="28" y="74"><tspan fill="#7ee787">$ </tspan><tspan fill="#d4d4d4">new-script bash backup-tool</tspan></text>
+<text x="28" y="96"><tspan fill="#8b949e">Creating new bash project: backup-tool</tspan></text>
+<text x="28" y="118"><tspan fill="#8b949e">Created backup-tool.sh</tspan></text>
+<text x="28" y="140"><tspan fill="#8b949e">Created symlink to utilities/</tspan></text>
+<text x="28" y="184"><tspan fill="#7ee787">$ </tspan><tspan fill="#d4d4d4">cd backup-tool &amp;&amp; ./backup-tool.sh --verbose</tspan></text>
+<text x="28" y="206"><tspan fill="#ffffff" font-weight="bold" text-decoration="underline">Showing alert colors</tspan></text>
+<text x="28" y="228"><tspan fill="#d75fff">[  debug] This is debug text</tspan></text>
+<text x="28" y="250"><tspan fill="#bcbcbc">[   info] This is info text</tspan></text>
+<text x="28" y="272"><tspan fill="#d4d4d4" font-weight="bold">[ notice] This is notice text</tspan></text>
+<text x="28" y="294"><tspan fill="#00afd7">[ dryrun] This is dryrun text</tspan></text>
+<text x="28" y="316"><tspan fill="#ff6b6b">[warning] This is warning text</tspan></text>
+<text x="28" y="338"><tspan fill="#ff6b6b" font-weight="bold">[  error] This is error text </tspan><tspan fill="#bcbcbc" font-weight="bold">( _mainScript_:backup-tool.sh:33 &lt; main:backup-tool.sh:417 )</tspan></text>
+<text x="28" y="360"><tspan fill="#5fff00">[success] This is success text</tspan></text>
+<text x="28" y="382"><tspan fill="#d4d4d4" font-weight="bold" text-decoration="underline">[  input] This is input text</tspan></text>
+</g></svg>

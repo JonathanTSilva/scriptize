@@ -15,46 +15,50 @@
 [![Codespaces](https://img.shields.io/badge/codespaces-open-181717?style=flat-square&logo=github)](https://codespaces.new/JonathanTSilva/scriptize)
 <!-- badges:end -->
 
+**Stop starting scripts from a blank file.** scriptize gives every Bash or Python script the same safe, readable skeleton: error trapping, flag parsing, leveled colored alerts and logging, on top of a tested utility library. One command scaffolds it.
+
+<p align="center">
+  <img src="assets/demo/terminal.svg" alt="Terminal: new-script bash backup-tool creates a script, and running it prints colored debug, info, notice, dryrun, warning, error, success and input alerts" width="80%">
+</p>
+
+*The real output of a freshly generated script. Nothing was added to it.*
+
 ## What it is
 
-scriptize is a set of templates and utilities for Bash and Python scripts, plus a `new-script` helper that scaffolds a new script from them. The Bash utilities come with `shdoc` generated API docs and bats tests.
+A set of templates and utilities for Bash and Python scripts, plus a `new-script` helper that scaffolds a new script from them.
+
+- **A Bash template that behaves.** It traps errors and cleans up on exit, parses `--help`, `-v`, `-q`, `-n` (dry run), `--force`, `--logfile` and `--loglevel`, and logs to a file.
+- **Eleven Bash utility modules.** Alerts, arrays, checks, dates, debug, files, macOS, misc, services, strings and the template's own helpers. They are documented with `shdoc` and covered by more than 230 bats tests.
+- **A Python starter.** It has logging through `rich` with JSON file logs, plus utility modules for checks, CLI alerts, files, shell commands and strings.
+- **Docs and a live test report.** API pages are built with mkdocs, and the [test report](https://jonathantsilva.github.io/scriptize/) is rebuilt by CI.
 
 ## Quick start
 
-Install the tools the Bash templates and tests use.
-
-On Debian/Ubuntu:
+`new-script` is installed system-wide, so the installer needs `sudo`. It records where you cloned the repository, so clone it somewhere you will keep it.
 
 ```bash
-sudo apt update
-sudo apt install shellcheck bats shell-format
+git clone https://github.com/JonathanTSilva/scriptize.git
+cd scriptize && sudo ./install.sh
 ```
 
-On Fedora:
+The installer also checks for `shellcheck`, `shfmt` and `bats`, and warns if one is missing. They are optional but worth having:
 
 ```bash
-sudo dnf install ShellCheck bats shfmt
-```
-
-On macOS (using Homebrew):
-
-```bash
-brew install shellcheck bats shfmt
-```
-
-Then clone the repository and run the installer:
-
-```bash
-git clone https://github.com/JonathanTSilva/scriptize.git script-templates
-cd script-templates && sudo ./install.sh
+sudo apt install shellcheck shfmt bats   # Debian/Ubuntu
+sudo dnf install ShellCheck shfmt bats   # Fedora
+brew install shellcheck shfmt bats       # macOS (Homebrew)
 ```
 
 ## Usage
 
-Create a new script:
+Scaffold a script:
 
-- `new-script bash my-awesome-tool` creates `./my-awesome-tool.sh`, makes it executable, and you are ready to add your logic.
-- `new-script python my-data-processor` creates `./my-data-processor.py` for your Python project.
+```bash
+new-script bash my-awesome-tool      # ./my-awesome-tool/my-awesome-tool.sh
+new-script python my-data-processor  # ./my-data-processor/my-data-processor.py
+```
+
+Each command creates a directory named after your script, holding the executable script and a `utilities/` link to the shared library. Add your logic to `_mainScript_` in a Bash script, or to `main()` in a Python one. The Python starter imports `scriptize`, so run it with the checkout on `PYTHONPATH`.
 
 ### Pre-commit hooks
 
@@ -67,18 +71,18 @@ pre-commit install
 
 ### Generating Bash docs
 
-Run `shdoc` from the root of your repository without any installation. It behaves like the original shdoc.
+`scriptize/utils/shdoc` is a self-contained awk script, so it needs no installation. It behaves like the original shdoc. Run it from the root of this repository.
 
 Generate documentation for a single file:
 
 ```bash
-./scriptize/utils/shdoc < ./bash/utilities/alerts.bash > docs/alerts_api.md
+./scriptize/utils/shdoc < scriptize/assets/bash/utilities/alerts.bash > docs/alerts_api.md
 ```
 
 Generate a single documentation file for all utilities:
 
 ```bash
-./scriptize/utils/shdoc < ./bash/utilities/*.bash > docs/BASH_API_REFERENCE.md
+cat scriptize/assets/bash/utilities/*.bash | ./scriptize/utils/shdoc > docs/BASH_API_REFERENCE.md
 ```
 
 ## Docs
