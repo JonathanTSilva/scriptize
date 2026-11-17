@@ -2,10 +2,11 @@
 
 set -euo pipefail
 
-# Load the path to the templates repository
-if [[ -f /etc/script-templates/config ]]; then
+# Load the path to the templates repository. SCRIPTIZE_CONFIG overrides the install-time location.
+config_file="${SCRIPTIZE_CONFIG:-/etc/script-templates/config}"
+if [[ -f ${config_file} ]]; then
     # shellcheck source=/dev/null
-    source /etc/script-templates/config
+    source "${config_file}"
 else
     echo "Error: Configuration file not found. Please run install.sh" >&2
     exit 1
@@ -33,22 +34,16 @@ echo "Creating new ${type} project: ${proj_name}"
 mkdir -p "${proj_name}"
 cd "${proj_name}"
 
+assets_dir="${TEMPLATE_REPO_PATH}/scriptize/assets"
+
 case "${type}" in
 bash)
     script_name="${proj_name}.sh"
-    template_path="${TEMPLATE_REPO_PATH}/bash/template.sh"
-    cp "${template_path}" "./${script_name}"
+    cp "${assets_dir}/bash/template.sh" "./${script_name}"
     chmod +x "./${script_name}"
 
-    # This is the key: create a symlink to the utilities directory
-    ln -s "${TEMPLATE_REPO_PATH}/bash/utilities" ./utilities
-
-    # Modify the template to use the new relative path
-    # The original template is complex, so let's adjust the _sourceUtilities_ call
-    # The default is: _sourceUtilities_ "$(_findBaseDir_)/../shell-scripting-templates/utilities"
-    # We will change it to: _sourceUtilities_ "$(_findBaseDir_)/utilities"
-    # shellcheck disable=SC2016 # the $(...) must reach the generated script unexpanded
-    sed -i 's#_sourceUtilities_.*#_sourceUtilities_ "$(_findBaseDir_)/utilities"#' "./${script_name}"
+    # The template sources "<script dir>/utilities", so link the shared utilities there
+    ln -s "${assets_dir}/bash/utilities" ./utilities
 
     echo "Created ${script_name}"
     echo "Created symlink to utilities/"
@@ -56,10 +51,11 @@ bash)
     ;;
 python)
     script_name="${proj_name}.py"
-    template_path="${TEMPLATE_REPO_PATH}/python/template.py"
-    cp "${template_path}" "./${script_name}"
+    cp "${assets_dir}/python/main.py" "./${script_name}"
     chmod +x "./${script_name}"
+    ln -s "${assets_dir}/python/utilities" ./utilities
     echo "Created ${script_name}"
+    echo "Created symlink to utilities/"
     echo "Remember to setup your python environment (e.g., venv)."
     ;;
 *)
