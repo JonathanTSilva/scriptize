@@ -153,6 +153,9 @@ ci = "uv run task _check && uv run task _pytest_ci"
 [tool.coverage.html]
 directory = "site/test-report/coverage"
 
+[tool.coverage.report]
+fail_under = 95
+
 [tool.coverage.run]
 branch = true
 source = ["scriptize"]
