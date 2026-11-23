@@ -1,11 +1,11 @@
 # Changes here will be overwritten by Copier. Re-sync with `copier update`.
-_commit: v1.3.2
+_commit: v1.5.0
 _src_path: gh:JonathanTSilva/template-repo
 bench: false
 description: ➕ Standardize the scripting environment to improve the maintainability,
     readability and efficiency of your scripts
 e2e: false
-has_release: false
+has_release: true
 kind: product
 license: mit
 lighthouse: false
