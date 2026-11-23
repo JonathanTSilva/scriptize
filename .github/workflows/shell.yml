@@ -72,5 +72,5 @@ jobs:
       - name: bats
         working-directory: ${{ runner.temp }}/project
         run: |
-          npm install --no-save --ignore-scripts --prefix "$RUNNER_TEMP/bats-cli" bats@1.13.0
-          "$RUNNER_TEMP/bats-cli/node_modules/.bin/bats" test/
+          git clone --quiet https://github.com/bats-core/bats-core "$RUNNER_TEMP/bats-core" && git -C "$RUNNER_TEMP/bats-core" checkout --quiet 3bca150ec86275d6d9d5a4fd7d48ab8b6c6f3d87
+          "$RUNNER_TEMP/bats-core/bin/bats" test/
