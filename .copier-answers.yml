@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier. Re-sync with `copier update`.
-_commit: v1.5.0
+_commit: v1.5.1
 _src_path: gh:JonathanTSilva/template-repo
 bench: false
 description: ➕ Standardize the scripting environment to improve the maintainability,
@@ -18,4 +18,3 @@ stack: python
 status: active
 visibility: public
 year: 2026
-
