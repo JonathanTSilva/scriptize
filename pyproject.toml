@@ -10,7 +10,7 @@ license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.13,<4.0"
 dependencies = [
-    "typer>=0.29.1,<0.30",
+    "typer>=0.29.2,<0.30",
     "rich>=15.0.0,<16",
     "validators>=0.36.0,<0.37",
 ]
@@ -19,16 +19,16 @@ dependencies = [
 dev = [
     "pytest>=9.0.3,<10",
     "pytest-cov>=7.1.0,<8",
-    "ruff>=0.12.1",
+    "ruff>=0.17.6",
     "taskipy>=1.14.1,<2",
     "pyright>=1.1.400",
-    "pydantic>=2.11.7,<3",
+    "pydantic>=2.14.4,<3",
     "pre-commit>=4.2.0,<5",
     "allure-pytest>=2.15.0,<3",
 ]
 doc = [
     "mkdocs>=1.6.1,<2",
-    "mkdocs-material>=9.6.15,<10",
+    "mkdocs-material>=9.8.2,<10",
     "mkdocstrings>=1.0.8,<1.1",
     "mkdocstrings-python>=2.0.11,<3",
 ]
