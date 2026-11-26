@@ -1,7 +1,8 @@
 # Changes here will be overwritten by Copier. Re-sync with `copier update`.
-_commit: v1.5.1
+_commit: v1.6.0
 _src_path: gh:JonathanTSilva/template-repo
 bench: false
+bestpractices_id: 0
 description: ➕ Standardize the scripting environment to improve the maintainability,
     readability and efficiency of your scripts
 e2e: false
