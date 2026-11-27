@@ -2,7 +2,7 @@
 _commit: v1.6.0
 _src_path: gh:JonathanTSilva/template-repo
 bench: false
-bestpractices_id: 0
+bestpractices_id: 17181
 description: ➕ Standardize the scripting environment to improve the maintainability,
     readability and efficiency of your scripts
 e2e: false
